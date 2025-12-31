@@ -41,10 +41,11 @@ function closeNoActionsOverlay() {
     hide("overlayNoActions");
 }
 
-// ---------- Local UX prefs (snow/sound/theme) ----------
+// ---------- Local UX prefs (snow/sound/music/theme) ----------
 const LS = {
     snow: "xmas_snow_enabled",
     sound: "xmas_sound_enabled",
+    music: "xmas_music_enabled",
     theme: "xmas_theme" // "dark" | "light"
 };
 
@@ -91,6 +92,48 @@ function clickSound() { beep(740, 25, "triangle", 0.035); }
 function successSound() { beep(880, 45, "sine", 0.045); }
 function toggleSoundFx(on) { on ? beep(700, 40, "sine", 0.045) : beep(220, 50, "sine", 0.03); }
 
+// ---------- Música de fondo ----------
+const bgMusicEl = $("bgMusic");
+let userGestureDone = false;
+
+function canMusic() {
+    return getBoolLS(LS.music, true);
+}
+
+function applyMusicState() {
+    if (!bgMusicEl) return;
+
+    // volumen suave
+    bgMusicEl.volume = 0.25;
+
+    // si está desactivada o aún no ha habido interacción: pausa
+    if (!canMusic() || !userGestureDone) {
+        try { bgMusicEl.pause(); } catch { /* ignore */ }
+        return;
+    }
+
+    // si el usuario desactiva "sonidos", también pausamos música (para que sea coherente)
+    if (!canSound()) {
+        try { bgMusicEl.pause(); } catch { /* ignore */ }
+        return;
+    }
+
+    // play best-effort
+    try {
+        const p = bgMusicEl.play();
+        if (p && typeof p.catch === "function") p.catch(() => { /* ignore autoplay */ });
+    } catch { /* ignore */ }
+}
+
+// marcamos “ya hubo gesto” con cualquier click/tecla y probamos a arrancar música
+function markUserGesture() {
+    if (userGestureDone) return;
+    userGestureDone = true;
+    applyMusicState();
+}
+window.addEventListener("pointerdown", markUserGesture, { once: true });
+window.addEventListener("keydown", markUserGesture, { once: true });
+
 // ---------- Theme apply ----------
 function applyThemeFromLS() {
     const theme = getThemeLS();
@@ -106,9 +149,11 @@ applyThemeFromLS();
 
     const snowOn = getBoolLS(LS.snow, true);
     const soundOn = getBoolLS(LS.sound, true);
+    const musicOn = getBoolLS(LS.music, true);
 
     $("toggleSnow").textContent = snowOn ? "ON" : "OFF";
     $("toggleSound").textContent = soundOn ? "ON" : "OFF";
+    $("toggleMusic").textContent = musicOn ? "ON" : "OFF";
     applyThemeFromLS();
 
     btn.addEventListener("click", () => {
@@ -130,6 +175,15 @@ applyThemeFromLS();
         setBoolLS(LS.sound, next);
         $("toggleSound").textContent = next ? "ON" : "OFF";
         toggleSoundFx(next);
+        applyMusicState();
+    });
+
+    $("toggleMusic").addEventListener("click", () => {
+        clickSound();
+        const next = !getBoolLS(LS.music, true);
+        setBoolLS(LS.music, next);
+        $("toggleMusic").textContent = next ? "ON" : "OFF";
+        applyMusicState();
     });
 
     $("toggleTheme").addEventListener("click", () => {
@@ -146,6 +200,9 @@ applyThemeFromLS();
         if (e.target === btn || panel.contains(e.target)) return;
         panel.classList.add("hidden");
     });
+
+    // estado inicial música (sin gesto: no arrancará)
+    applyMusicState();
 })();
 
 // ---------- Snow (canvas particles, seamless) ----------
@@ -171,9 +228,10 @@ function makeSnowParticle() {
         x: Math.random() * w,
         y: Math.random() * h,
         r: 0.8 + Math.random() * 2.2,
-        vx: -0.15 + Math.random() * 0.3,
-        vy: 0.35 + Math.random() * 0.9, // más lento
-        a: 0.35 + Math.random() * 0.55
+        vx: -0.10 + Math.random() * 0.20,
+        // MÁS LENTA (antes: 0.35..1.25 aprox). Ahora: 0.18..0.52
+        vy: 0.18 + Math.random() * 0.34,
+        a: 0.30 + Math.random() * 0.55
     };
 }
 
@@ -204,12 +262,12 @@ function stepSnow(ts) {
 
     // dibuja
     for (const p of snowParticles) {
-        // movimiento suave y lento
+        // movimiento suave y MÁS lento
         p.x += p.vx * dt;
         p.y += p.vy * dt;
 
-        // pequeño “sway” muy leve
-        p.x += Math.sin((p.y / 70) + (ts / 1800)) * 0.08;
+        // sway más suave (antes 0.08)
+        p.x += Math.sin((p.y / 90) + (ts / 2200)) * 0.04;
 
         if (p.y > h + 8) { p.y = -8; p.x = Math.random() * w; }
         if (p.x < -10) p.x = w + 10;
@@ -897,6 +955,9 @@ async function copyRoomCode() {
 
 // ---------- UI events ----------
 $("btnCreate").addEventListener("click", async () => {
+    // gesto de usuario => permite música
+    markUserGesture();
+
     clickSound();
     const name = $("nameInput").value.trim();
     if (!name) return alert("Pon tu nombre.");
@@ -908,6 +969,9 @@ $("btnCreate").addEventListener("click", async () => {
 });
 
 $("btnJoin").addEventListener("click", async () => {
+    // gesto de usuario => permite música
+    markUserGesture();
+
     clickSound();
     const name = $("nameInput").value.trim();
     const code = $("roomInput").value.trim();

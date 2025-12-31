@@ -12,6 +12,14 @@
     <!-- Snow canvas (full screen) -->
     <canvas id="snowCanvas" aria-hidden="true"></canvas>
 
+    <!-- Adornos extra (decorativos) -->
+    <div class="cornerOrn cornerOrn--tl" aria-hidden="true"></div>
+    <div class="cornerOrn cornerOrn--tr" aria-hidden="true"></div>
+
+    <!-- Música de fondo (necesitas el archivo en /assets) -->
+    <!-- Pon tu mp3 aquí: ./assets/xmas.mp3 -->
+    <audio id="bgMusic" src="./assets/xmas.mp3" loop preload="auto"></audio>
+
     <!-- Corner toggles (solo local) -->
     <button id="cornerToggleBtn" class="cornerToggle" title="Ajustes visuales">⚙️</button>
     <div id="cornerPanel" class="cornerPanel hidden">
@@ -24,6 +32,10 @@
             <button id="toggleSound" class="miniBtn">ON</button>
         </div>
         <div class="cornerRow">
+            <span>🎵 Música</span>
+            <button id="toggleMusic" class="miniBtn">ON</button>
+        </div>
+        <div class="cornerRow">
             <span>🌗 Tema</span>
             <button id="toggleTheme" class="miniBtn">Oscuro</button>
         </div>
@@ -31,6 +43,9 @@
 
     <div class="wrap">
         <header class="top">
+            <!-- Lucecitas extra -->
+            <div class="xmasLights" aria-hidden="true"></div>
+
             <div class="garland" aria-hidden="true"></div>
             <h1 id="gameTitle">🎄 Juego Navideño</h1>
             <p class="muted" id="subtitle">Entra, espera a tus amigos y empezad.</p>
