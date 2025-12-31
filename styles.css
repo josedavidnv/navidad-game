@@ -62,43 +62,6 @@ body {
     z-index: 0;
 }
 
-/* Adornos en esquinas */
-.cornerOrn {
-    position: fixed;
-    width: 130px;
-    height: 130px;
-    z-index: 1;
-    pointer-events: none;
-    opacity: .88;
-    filter: drop-shadow(0 12px 22px rgba(0, 0, 0, .35));
-}
-
-.cornerOrn--tl {
-    top: -8px;
-    left: -8px;
-    transform: rotate(-10deg);
-    background:
-        radial-gradient(circle at 35% 35%, rgba(255, 213, 138, .9) 0 8px, transparent 9px),
-        radial-gradient(circle at 58% 55%, rgba(255, 77, 90, .9) 0 9px, transparent 10px),
-        radial-gradient(circle at 38% 58%, rgba(47, 227, 154, .95) 0 18px, transparent 19px),
-        radial-gradient(circle at 65% 35%, rgba(47, 227, 154, .92) 0 14px, transparent 15px);
-    mask:
-        radial-gradient(circle at 50% 50%, #000 0 60%, transparent 61%);
-}
-
-.cornerOrn--tr {
-    top: -8px;
-    right: -8px;
-    transform: rotate(12deg) scaleX(-1);
-    background:
-        radial-gradient(circle at 35% 35%, rgba(255, 213, 138, .9) 0 8px, transparent 9px),
-        radial-gradient(circle at 58% 55%, rgba(255, 77, 90, .9) 0 9px, transparent 10px),
-        radial-gradient(circle at 38% 58%, rgba(47, 227, 154, .95) 0 18px, transparent 19px),
-        radial-gradient(circle at 65% 35%, rgba(47, 227, 154, .92) 0 14px, transparent 15px);
-    mask:
-        radial-gradient(circle at 50% 50%, #000 0 60%, transparent 61%);
-}
-
 /* Wrap over snow */
 .wrap {
     position: relative;
@@ -113,101 +76,19 @@ body {
     position: relative;
 }
 
-/* Lucecitas del header */
-.xmasLights {
-    height: 12px;
-    margin-bottom: 10px;
-    border-radius: 999px;
-    position: relative;
-    opacity: .9;
-    background: linear-gradient(90deg, rgba(255, 255, 255, .08), rgba(255, 255, 255, 0));
-}
-
-.xmasLights::after {
-    content: "";
-    position: absolute;
-    inset: 0;
-    border-radius: 999px;
-    background:
-        radial-gradient(circle at 6% 50%, rgba(255, 213, 138, .95) 0 4px, transparent 5px),
-        radial-gradient(circle at 16% 50%, rgba(255, 77, 90, .95) 0 4px, transparent 5px),
-        radial-gradient(circle at 26% 50%, rgba(47, 227, 154, .95) 0 4px, transparent 5px),
-        radial-gradient(circle at 36% 50%, rgba(125, 211, 252, .95) 0 4px, transparent 5px),
-        radial-gradient(circle at 46% 50%, rgba(255, 213, 138, .95) 0 4px, transparent 5px),
-        radial-gradient(circle at 56% 50%, rgba(255, 77, 90, .95) 0 4px, transparent 5px),
-        radial-gradient(circle at 66% 50%, rgba(47, 227, 154, .95) 0 4px, transparent 5px),
-        radial-gradient(circle at 76% 50%, rgba(125, 211, 252, .95) 0 4px, transparent 5px),
-        radial-gradient(circle at 86% 50%, rgba(255, 213, 138, .95) 0 4px, transparent 5px),
-        radial-gradient(circle at 96% 50%, rgba(47, 227, 154, .95) 0 4px, transparent 5px);
-    filter: drop-shadow(0 6px 10px rgba(0, 0, 0, .25));
-    animation: twinkle 2.2s ease-in-out infinite;
-}
-
-@keyframes twinkle {
-
-    0%,
-    100% {
-        opacity: .65;
-    }
-
-    50% {
-        opacity: 1;
-    }
-}
-
-/* Garland NUEVO (más “cinta + bombillas”) */
 .garland {
-    height: 22px;
+    height: 18px;
     margin-bottom: 10px;
     border-radius: 999px;
-    position: relative;
-    overflow: hidden;
-    background:
-        linear-gradient(90deg,
-            rgba(47, 227, 154, .20),
-            rgba(255, 77, 90, .18),
-            rgba(255, 213, 138, .18),
-            rgba(125, 211, 252, .16));
-    border: 1px solid rgba(255, 255, 255, .10);
-    box-shadow: 0 10px 28px rgba(0, 0, 0, .15);
-    backdrop-filter: blur(6px);
-}
-
-.garland::before {
-    content: "";
-    position: absolute;
-    inset: -20px -30px;
     background:
         repeating-linear-gradient(90deg,
-            rgba(47, 227, 154, .30) 0 18px,
-            rgba(255, 77, 90, .26) 18px 36px,
-            rgba(255, 213, 138, .24) 36px 54px,
-            rgba(125, 211, 252, .22) 54px 72px);
-    transform: rotate(-2deg);
-    opacity: .75;
-    filter: blur(.25px);
-}
-
-.garland::after {
-    /* bombillitas */
-    content: "";
-    position: absolute;
-    inset: 0;
-    background:
-        radial-gradient(circle at 6% 50%, rgba(255, 213, 138, .95) 0 4px, transparent 5px),
-        radial-gradient(circle at 14% 50%, rgba(255, 77, 90, .95) 0 4px, transparent 5px),
-        radial-gradient(circle at 22% 50%, rgba(47, 227, 154, .95) 0 4px, transparent 5px),
-        radial-gradient(circle at 30% 50%, rgba(125, 211, 252, .95) 0 4px, transparent 5px),
-        radial-gradient(circle at 38% 50%, rgba(255, 213, 138, .95) 0 4px, transparent 5px),
-        radial-gradient(circle at 46% 50%, rgba(255, 77, 90, .95) 0 4px, transparent 5px),
-        radial-gradient(circle at 54% 50%, rgba(47, 227, 154, .95) 0 4px, transparent 5px),
-        radial-gradient(circle at 62% 50%, rgba(125, 211, 252, .95) 0 4px, transparent 5px),
-        radial-gradient(circle at 70% 50%, rgba(255, 213, 138, .95) 0 4px, transparent 5px),
-        radial-gradient(circle at 78% 50%, rgba(255, 77, 90, .95) 0 4px, transparent 5px),
-        radial-gradient(circle at 86% 50%, rgba(47, 227, 154, .95) 0 4px, transparent 5px),
-        radial-gradient(circle at 94% 50%, rgba(125, 211, 252, .95) 0 4px, transparent 5px);
-    filter: drop-shadow(0 6px 10px rgba(0, 0, 0, .22));
-    animation: twinkle 2.0s ease-in-out infinite;
+            rgba(255, 213, 138, .40) 0 10px,
+            rgba(255, 77, 90, .35) 10px 20px,
+            rgba(47, 227, 154, .32) 20px 30px,
+            rgba(125, 211, 252, .28) 30px 40px);
+    filter: blur(.2px);
+    opacity: .85;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, .12);
 }
 
 h1 {
@@ -280,12 +161,6 @@ h3 {
 @media (max-width:720px) {
     .grid {
         grid-template-columns: 1fr;
-    }
-
-    .cornerOrn {
-        width: 96px;
-        height: 96px;
-        opacity: .72;
     }
 }
 
@@ -361,6 +236,30 @@ button.ghost {
     margin-left: 6px;
 }
 
+.iconBtn.danger {
+    border-color: rgba(251, 113, 133, .35);
+    background: rgba(251, 113, 133, .10);
+}
+
+.iconBtn.danger:hover {
+    border-color: rgba(251, 113, 133, .7);
+}
+
+/* Inline row inside list items */
+.liRow {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+}
+
+.liLeft {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
 .list {
     list-style: none;
     padding: 0;
@@ -409,22 +308,12 @@ button.ghost {
     font-size: 1.25rem;
     font-weight: 900;
     margin-top: 2px;
-    color: var(--text);
 }
 
-/* Acción: más clara y diferenciada */
 .youRole {
-    font-size: 1.4rem;
+    font-size: 1.35rem;
     font-weight: 950;
     margin-top: 6px;
-    color: var(--accent);
-    text-shadow: 0 0 10px rgba(125, 211, 252, .25);
-}
-
-/* Si es comodín */
-.youRole.wildcard {
-    color: var(--gold);
-    text-shadow: 0 0 12px rgba(255, 213, 138, .35);
 }
 
 .check {
@@ -472,6 +361,11 @@ button.ghost {
 .badge.no {
     border-color: rgba(255, 77, 90, .35);
     background: rgba(255, 77, 90, .10);
+}
+
+.badge.offline {
+    border-color: rgba(167, 178, 214, .35);
+    background: rgba(167, 178, 214, .10);
 }
 
 /* Actions manager improved */

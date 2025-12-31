@@ -149,6 +149,8 @@ applyThemeFromLS();
 })();
 
 // ---------- Snow (canvas particles, seamless) ----------
+// FIX: en móvil te caía más rápido -> ahora la velocidad se calcula por "frames" (dt normalizado)
+// y además bajamos la velocidad base.
 let snowRAF = null;
 let snowParticles = [];
 let snowLastT = 0;
@@ -171,8 +173,9 @@ function makeSnowParticle() {
         x: Math.random() * w,
         y: Math.random() * h,
         r: 0.8 + Math.random() * 2.2,
-        vx: -0.15 + Math.random() * 0.3,
-        vy: 0.35 + Math.random() * 0.9, // más lento
+        // velocidades "por frame" (aprox a 60fps)
+        vx: (-0.35 + Math.random() * 0.7),      // lateral suave
+        vy: (0.55 + Math.random() * 1.15),      // más lento que antes
         a: 0.35 + Math.random() * 0.55
     };
 }
@@ -196,20 +199,22 @@ function stepSnow(ts) {
     const w = window.innerWidth;
     const h = window.innerHeight;
 
-    const dt = Math.min(32, ts - (snowLastT || ts)); // clamp
+    const dtMs = Math.min(40, ts - (snowLastT || ts)); // clamp
     snowLastT = ts;
+
+    // Normaliza a "frames" (16.67ms ~ 60fps)
+    const dt = dtMs / 16.67;
 
     ensureSnowParticles();
     ctx.clearRect(0, 0, w, h);
 
     // dibuja
     for (const p of snowParticles) {
-        // movimiento suave y lento
         p.x += p.vx * dt;
         p.y += p.vy * dt;
 
-        // pequeño “sway” muy leve
-        p.x += Math.sin((p.y / 70) + (ts / 1800)) * 0.08;
+        // sway muy leve
+        p.x += Math.sin((p.y / 70) + (ts / 1800)) * (0.18 * dt);
 
         if (p.y > h + 8) { p.y = -8; p.x = Math.random() * w; }
         if (p.x < -10) p.x = w + 10;
@@ -361,56 +366,29 @@ async function ensureHost() {
     }
 }
 
-// ---------- Presence fix (MÓVIL / BLOQUEO) ----------
-let lastPresenceFixAt = 0;
-
-async function markMeConnected(reason = "") {
-    if (!roomCode || !playerId) return;
-
-    // Evita spamear writes si el navegador dispara muchos eventos
-    const now = Date.now();
-    if (now - lastPresenceFixAt < 3000) return;
-    lastPresenceFixAt = now;
-
-    try {
-        // 1) me marco como conectado
-        await update(roomRef(`players/${playerId}`), {
-            connected: true,
-            leftAt: null,
-            // opcional (útil para debug): lastSeenAt: serverTimestamp(),
-        });
-
-        // 2) re-registro onDisconnect (clave en móvil)
-        onDisconnect(roomRef(`players/${playerId}`)).update({
-            connected: false,
-            leftAt: serverTimestamp()
-        });
-    } catch {
-        // ignore
-    }
+// ---------- Players: “activos” aunque estén offline ----------
+// Un jugador solo se va de verdad si:
+// - pulsa “Salir” (leftExplicit: true) o
+// - el host lo elimina (removed: true)
+function isActivePlayer(p) {
+    if (!p) return false;
+    if (p.removed) return false;
+    if (p.leftExplicit) return false;
+    return true;
 }
 
-// Cuando la app vuelve a primer plano / recupera conexión
-document.addEventListener("visibilitychange", () => {
-    if (!document.hidden) markMeConnected("visibilitychange");
-});
-window.addEventListener("focus", () => markMeConnected("focus"));
-window.addEventListener("online", () => markMeConnected("online"));
-
-// Heartbeat suave: si el móvil “mata” la conexión y vuelve, lo repara solo
-setInterval(() => {
-    // solo si estamos dentro de una sala
-    if (!roomCode || !playerId) return;
-    // si está en background, no fuerces
-    if (document.hidden) return;
-    markMeConnected("heartbeat");
-}, 25000);
+function getActiveIds(roomData) {
+    const players = roomData.players || {};
+    return Object.keys(players).filter(pid => isActivePlayer(players[pid]));
+}
 
 // ---------- Player join / rejoin + unique names ----------
 function findPlayerIdByName(roomData, name) {
     const players = roomData.players || {};
     const target = normName(name);
     for (const [pid, p] of Object.entries(players)) {
+        if (!p) continue;
+        if (!isActivePlayer(p)) continue;
         if (normName(p?.name) === target) return pid;
     }
     return null;
@@ -421,6 +399,7 @@ function isNameTakenByOtherConnected(roomData, name) {
     const target = normName(name);
     for (const [pid, p] of Object.entries(players)) {
         if (!p) continue;
+        if (!isActivePlayer(p)) continue;
         if (normName(p.name) === target && p.connected) return pid;
     }
     return null;
@@ -434,19 +413,23 @@ async function addNewPlayerToRoom() {
     await set(newRef, {
         name: playerName,
         joinedAt: serverTimestamp(),
-        connected: true
+        connected: true,
+        leftExplicit: false,
+        removed: false
     });
 
-    onDisconnect(newRef).update({ connected: false, leftAt: serverTimestamp() });
+    // IMPORTANTE: onDisconnect solo marca offline, NO “sale” del juego
+    onDisconnect(newRef).update({ connected: false });
 }
 
 async function reconnectExistingPlayer(existingPid) {
     playerId = existingPid;
     await update(roomRef(`players/${playerId}`), {
         connected: true,
-        leftAt: null
+        leftExplicit: false,
+        removed: false
     });
-    onDisconnect(roomRef(`players/${playerId}`)).update({ connected: false, leftAt: serverTimestamp() });
+    onDisconnect(roomRef(`players/${playerId}`)).update({ connected: false });
 }
 
 async function enterRoomFlow(roomData) {
@@ -470,10 +453,6 @@ async function enterRoomFlow(roomData) {
 
     await ensureHost();
     subscribeRoom();
-
-    // 👇 Importantísimo: al entrar, asegúrate de que el presence queda bien
-    await markMeConnected("enterRoomFlow");
-
     return true;
 }
 
@@ -519,11 +498,11 @@ function renderActionCounts(roomData) {
 function computeAllExecuted(roomData) {
     const assignments = roomData.game?.assignments || {};
     const players = roomData.players || {};
-    const connectedIds = Object.keys(players).filter(pid => players[pid]?.connected);
+    const activeIds = getActiveIds(roomData);
 
-    if (connectedIds.length === 0) return false;
+    if (activeIds.length === 0) return false;
 
-    for (const pid of connectedIds) {
+    for (const pid of activeIds) {
         const a = assignments[pid];
         if (!a || !a.action) return false;
         if (!a.executed) return false;
@@ -555,22 +534,21 @@ function autoDisableIfNoRepeat(updates, roomData, action) {
 async function startGame(roomData) {
     if (!isHost) return;
 
-    const players = roomData.players || {};
-    const connectedIds = Object.keys(players).filter(pid => players[pid]?.connected);
-    if (connectedIds.length < 2) {
+    const activeIds = getActiveIds(roomData);
+    if (activeIds.length < 2) {
         alert("Mínimo 2 jugadores para empezar.");
         return;
     }
 
     // VALIDACIÓN: acciones activas >= jugadores
     const poolEnabled = buildEnabledPool(roomData);
-    if (poolEnabled.length < connectedIds.length) {
-        alert(`No puedes empezar: hay ${connectedIds.length} jugadores y solo ${poolEnabled.length} acciones activas.\nActiva más acciones o añade nuevas.`);
+    if (poolEnabled.length < activeIds.length) {
+        alert(`No puedes empezar: hay ${activeIds.length} jugadores y solo ${poolEnabled.length} acciones activas.\nActiva más acciones o añade nuevas.`);
         return;
     }
 
     const useWildcard = !!roomData.settings?.useWildcard;
-    const wildcardPlayerId = useWildcard ? pickRandom(connectedIds) : null;
+    const wildcardPlayerId = useWildcard ? pickRandom(activeIds) : null;
 
     const pool = poolEnabled;
     const noRepeat = !!roomData.settings?.noRepeat;
@@ -585,7 +563,7 @@ async function startGame(roomData) {
     updates["game/assignments"] = {};
 
     const assignments = {};
-    const order = shuffle([...connectedIds]);
+    const order = shuffle([...activeIds]);
 
     for (const pid of order) {
         const pick = pickAction(roomData, pool, usedActions, noRepeat);
@@ -625,9 +603,8 @@ async function nextRound(roomData) {
     if (!isHost) return;
     if (!computeAllExecuted(roomData)) return;
 
-    const players = roomData.players || {};
-    const connectedIds = Object.keys(players).filter(pid => players[pid]?.connected);
-    if (connectedIds.length < 1) return;
+    const activeIds = getActiveIds(roomData);
+    if (activeIds.length < 1) return;
 
     const useWildcard = !!roomData.settings?.useWildcard;
     const noRepeat = !!roomData.settings?.noRepeat;
@@ -638,12 +615,12 @@ async function nextRound(roomData) {
 
     let newWildcard = null;
     if (useWildcard) {
-        const candidates = connectedIds.filter(pid => pid !== oldWildcard);
-        newWildcard = candidates.length ? pickRandom(candidates) : pickRandom(connectedIds);
+        const candidates = activeIds.filter(pid => pid !== oldWildcard);
+        newWildcard = candidates.length ? pickRandom(candidates) : pickRandom(activeIds);
     }
 
     const newAssignments = {};
-    const order = shuffle([...connectedIds]);
+    const order = shuffle([...activeIds]);
 
     for (const pid of order) {
         const pick = pickAction(roomData, pool, usedActions, noRepeat);
@@ -683,15 +660,15 @@ async function nextRound(roomData) {
     await update(roomRef(), updates);
 }
 
-// ---------- Room cleanup (destroy if empty) ----------
+// ---------- Room cleanup (destroy only if everyone explicitly left or removed) ----------
 async function maybeDestroyRoomIfEmpty() {
     if (!roomCode) return;
     const snap = await get(roomRef());
     if (!snap.exists()) return;
     const data = snap.val();
     const players = data.players || {};
-    const connectedCount = Object.values(players).filter(p => p?.connected).length;
-    if (connectedCount === 0) await set(roomRef(), null);
+    const stillActive = Object.values(players).some(p => isActivePlayer(p));
+    if (!stillActive) await set(roomRef(), null);
 }
 
 async function leaveRoomAndMaybeDestroy() {
@@ -699,7 +676,12 @@ async function leaveRoomAndMaybeDestroy() {
     clickSound();
     if (roomCode && playerId) {
         try {
-            await update(roomRef(`players/${playerId}`), { connected: false, leftAt: serverTimestamp() });
+            // SALIR = salida real
+            await update(roomRef(`players/${playerId}`), {
+                connected: false,
+                leftExplicit: true,
+                leftAt: serverTimestamp()
+            });
         } catch { /* ignore */ }
         try { await maybeDestroyRoomIfEmpty(); } catch { /* ignore */ }
     }
@@ -711,6 +693,29 @@ function renderHostVisibility() {
     $("hostLobbyControls").style.display = isHost ? "" : "none";
     $("hostLobbyStartRow").style.display = isHost ? "flex" : "none";
     $("hostGameControls").style.display = isHost ? "" : "none";
+}
+
+// ---------- Host: remove player ----------
+async function hostRemovePlayer(pid) {
+    if (!roomCode || !isHost) return;
+    if (!pid) return;
+    const snap = await get(roomRef());
+    const data = snap.val();
+    if (!data) return;
+    if (data.hostPlayerId === pid) return; // no borrar host
+
+    clickSound();
+
+    const updates = {};
+    updates[`players/${pid}/removed`] = true;
+    updates[`players/${pid}/connected`] = false;
+    updates[`players/${pid}/leftExplicit`] = true;
+    updates[`players/${pid}/leftAt`] = serverTimestamp();
+
+    // si existe assignment, lo quitamos (opcional)
+    updates[`game/assignments/${pid}`] = null;
+
+    await update(roomRef(), updates);
 }
 
 // ---------- Actions manager UI ----------
@@ -779,13 +784,26 @@ function renderLobby(roomData) {
 
     const players = roomData.players || {};
     const entries = Object.entries(players)
-        .filter(([, p]) => p?.connected)
+        .filter(([, p]) => isActivePlayer(p))
         .sort((a, b) => (a[1]?.joinedAt || 0) - (b[1]?.joinedAt || 0));
 
     $("playersList").innerHTML = entries.map(([pid, p]) => {
         const you = pid === playerId ? ` <span class="badge ok">tú</span>` : "";
         const host = roomData.hostPlayerId === pid ? ` <span class="badge">host</span>` : "";
-        return `<li>${escapeHtml(p.name || "—")}${you}${host}</li>`;
+        const offline = p.connected ? "" : ` <span class="badge offline">offline</span>`;
+        const kickBtn = (isHost && roomData.hostPlayerId !== pid)
+            ? ` <button class="iconBtn danger" data-kick="${escapeHtml(pid)}" title="Eliminar jugador">🗑️</button>`
+            : "";
+        return `
+            <li>
+              <div class="liRow">
+                <div class="liLeft">
+                  ${escapeHtml(p.name || "—")}${you}${host}${offline}
+                </div>
+                <div>${kickBtn}</div>
+              </div>
+            </li>
+        `;
     }).join("");
 
     const noRepeat = !!roomData.settings?.noRepeat;
@@ -794,7 +812,7 @@ function renderLobby(roomData) {
     const punishment = roomData.settings?.punishment || "";
 
     if ($("chkNoRepeat")) $("chkNoRepeat").checked = noRepeat;
-    if ($("chkUseWildcard")) $("chkUseWildcard").checked = useWildcard; // por defecto false ya en DB
+    if ($("chkUseWildcard")) $("chkUseWildcard").checked = useWildcard;
     if ($("chkLockJoin")) $("chkLockJoin").checked = lockJoin;
     if ($("punishmentInput")) $("punishmentInput").value = punishment;
 
@@ -853,19 +871,26 @@ function renderGame(roomData) {
             : "Marca cuando hayas hecho tu acción.")
         : "Cuando todos marquen hecho, cambian las acciones de todos.";
 
-    const connectedIds = Object.keys(players).filter(pid => players[pid]?.connected);
-    const rows = connectedIds
+    const activeIds = getActiveIds(roomData);
+    const rows = activeIds
         .sort((a, b) => (players[a]?.name || "").localeCompare(players[b]?.name || "", "es"))
         .map(pid => {
-            const name = players[pid]?.name || "—";
+            const p = players[pid];
+            const name = p?.name || "—";
+            const offline = p?.connected ? "" : ` <span class="badge offline">offline</span>`;
             const a = assignments[pid]?.action || "—";
             const exec = !!assignments[pid]?.executed;
             const isW = !!assignments[pid]?.isWildcard;
             const badge = isW
                 ? `<span class="badge">🎁</span> ${exec ? `<span class="badge ok">sí</span>` : `<span class="badge no">no</span>`}`
                 : (exec ? `<span class="badge ok">sí</span>` : `<span class="badge no">no</span>`);
+
+            const kickBtn = (isHost && roomData.hostPlayerId !== pid)
+                ? ` <button class="iconBtn danger" data-kick="${escapeHtml(pid)}" title="Eliminar jugador">🗑️</button>`
+                : "";
+
             return `<tr>
-        <td>${escapeHtml(name)}${pid === playerId ? ' <span class="badge ok">tú</span>' : ''}</td>
+        <td>${escapeHtml(name)}${pid === playerId ? ' <span class="badge ok">tú</span>' : ''}${offline} ${kickBtn}</td>
         <td>${escapeHtml(a)}</td>
         <td>${badge}</td>
       </tr>`;
@@ -904,20 +929,19 @@ function subscribeRoom() {
 
     const off = onValue(r, async (snap) => {
         if (!snap.exists()) {
-            // NO mostrar alert si yo me voy / sala vacía borrada
             goLanding();
             return;
         }
 
         const data = snap.val();
 
-        // ✅ AUTO-REPAIR presence: si existo pero me marca desconectado, lo arreglo
-        try {
-            const me = data.players?.[playerId];
-            if (roomCode && playerId && me && me.connected === false && !document.hidden) {
-                await markMeConnected("subscribeRoom_autorepair");
-            }
-        } catch { /* ignore */ }
+        // Si el host te ha eliminado (o marcaste salir), fuera.
+        const me = data.players?.[playerId];
+        if (playerId && me && (me.removed || me.leftExplicit)) {
+            alert("Has salido de la sala.");
+            goLanding();
+            return;
+        }
 
         isHost = (data.hostPlayerId === playerId);
 
@@ -984,6 +1008,22 @@ $("btnLeaveGame").addEventListener("click", leaveRoomAndMaybeDestroy);
 // copy buttons
 $("btnCopyRoom").addEventListener("click", copyRoomCode);
 $("btnCopyRoom2").addEventListener("click", copyRoomCode);
+
+// Host kick (delegación)
+$("playersList").addEventListener("click", async (e) => {
+    const t = e.target;
+    if (!(t instanceof HTMLElement)) return;
+    const pid = t.getAttribute("data-kick");
+    if (!pid) return;
+    await hostRemovePlayer(pid);
+});
+$("assignmentsTable").addEventListener("click", async (e) => {
+    const t = e.target;
+    if (!(t instanceof HTMLElement)) return;
+    const pid = t.getAttribute("data-kick");
+    if (!pid) return;
+    await hostRemovePlayer(pid);
+});
 
 // --- Lobby settings (SOLO HOST) ---
 $("chkNoRepeat").addEventListener("change", async (e) => {
@@ -1120,11 +1160,11 @@ $("btnOverlayEnableAll").addEventListener("click", async () => {
 $("btnExitNoActions").addEventListener("click", leaveRoomAndMaybeDestroy);
 $("btnExitNoActions2").addEventListener("click", leaveRoomAndMaybeDestroy);
 
-// best-effort on close
+// best-effort on close: NO es salir real, solo offline
 window.addEventListener("beforeunload", () => {
     try {
         if (roomCode && playerId) {
-            update(roomRef(`players/${playerId}`), { connected: false, leftAt: serverTimestamp() });
+            update(roomRef(`players/${playerId}`), { connected: false });
         }
     } catch { /* ignore */ }
 });
