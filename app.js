@@ -61,10 +61,13 @@ function setThemeLS(v) { localStorage.setItem(LS.theme, v); }
 
 function getSnowSpeedLS() {
     const raw = localStorage.getItem(LS.snowSpeed);
+
+    // si no existe, lo creamos con 0.2 (20%)
     if (raw === null || raw === "") {
-        // default: 20%
+        localStorage.setItem(LS.snowSpeed, "0.2");
         return 0.2;
     }
+
     const n = Number(raw);
     return Number.isFinite(n) ? Math.min(1.6, Math.max(0.2, n)) : 0.2;
 }
@@ -113,41 +116,74 @@ applyThemeFromLS();
 const bgMusic = $("bgMusic");
 let musicUnlocked = false;
 
-function isMusicEnabled() { return getBoolLS(LS.music, false); }
+// setMusicEnabled(true);
+// updateMusicBtn();
+// tryPlayMusic();
+
+function isMusicEnabled() { return getBoolLS(LS.music, true); }
 function setMusicEnabled(v) { setBoolLS(LS.music, v); }
 
 async function tryPlayMusic() {
     if (!bgMusic) return;
     if (!isMusicEnabled()) return;
+
     try {
         bgMusic.volume = 0.35;
         await bgMusic.play();
     } catch {
-        // autoplay blocked until gesture; handled by unlock
+        // autoplay bloqueado hasta gesto
     }
 }
 
 function stopMusic() {
     if (!bgMusic) return;
-    try { bgMusic.pause(); } catch { /* ignore */ }
+    try {
+        bgMusic.pause();
+        // opcional: resetear para que al volver ON arranque siempre
+        bgMusic.currentTime = 0;
+    } catch { }
 }
 
 function updateMusicBtn() {
     const on = isMusicEnabled();
-    $("toggleMusic").textContent = on ? "ON" : "OFF";
+    const el = $("toggleMusic");
+    if (el) el.textContent = on ? "ON" : "OFF";
+}
+
+async function hardUnlockMusic() {
+    if (musicUnlocked) {
+        // ya desbloqueada: solo intenta reproducir
+        await tryPlayMusic();
+        return;
+    }
+
+    musicUnlocked = true;
+
+    try { bgMusic.load(); } catch { }
+
+    await tryPlayMusic();
+
+    // ✅ ahora sí: quitamos listeners
+    window.removeEventListener("pointerdown", unlockMusicOnFirstGesture, true);
+    window.removeEventListener("keydown", unlockMusicOnFirstGesture, true);
 }
 
 function unlockMusicOnFirstGesture() {
-    if (musicUnlocked) return;
-    musicUnlocked = true;
-    // try start if enabled
-    tryPlayMusic();
-    // remove listeners
-    window.removeEventListener("pointerdown", unlockMusicOnFirstGesture, { capture: true });
-    window.removeEventListener("keydown", unlockMusicOnFirstGesture, { capture: true });
+    hardUnlockMusic();
 }
-window.addEventListener("pointerdown", unlockMusicOnFirstGesture, { capture: true, once: false });
-window.addEventListener("keydown", unlockMusicOnFirstGesture, { capture: true, once: false });
+
+window.addEventListener("pointerdown", unlockMusicOnFirstGesture, true);
+window.addEventListener("keydown", unlockMusicOnFirstGesture, true);
+
+// ✅ NUEVO: si está ON, intentamos desde ya (si el navegador lo permite)
+if (isMusicEnabled()) {
+    tryPlayMusic();
+}
+
+// Música ON por defecto si aún no existe la preferencia
+if (localStorage.getItem(LS.music) === null) {
+    setMusicEnabled(true);
+}
 
 // ---------- Corner panel ----------
 (function initCornerPanel() {
@@ -178,6 +214,8 @@ window.addEventListener("keydown", unlockMusicOnFirstGesture, { capture: true, o
     btn.addEventListener("click", () => {
         clickSound();
         panel.classList.toggle("hidden");
+        // ✅ gesto válido: intento de música
+        tryPlayMusic();
     });
 
     $("toggleSnow").addEventListener("click", () => {
@@ -201,8 +239,12 @@ window.addEventListener("keydown", unlockMusicOnFirstGesture, { capture: true, o
         const next = !isMusicEnabled();
         setMusicEnabled(next);
         updateMusicBtn();
-        if (next) await tryPlayMusic();
-        else stopMusic();
+
+        if (next) {
+            await hardUnlockMusic();   // ✅ play dentro del gesto
+        } else {
+            stopMusic();
+        }
     });
 
     $("toggleTheme").addEventListener("click", () => {
@@ -1082,6 +1124,9 @@ async function copyRoomCode() {
 // ---------- UI events ----------
 $("btnCreate").addEventListener("click", async () => {
     clickSound();
+    // ✅ gesto: fuerza unlock/play
+    await hardUnlockMusic();
+
     const name = $("nameInput").value.trim();
     if (!name) return alert("Pon tu nombre.");
     playerName = name;
@@ -1093,6 +1138,9 @@ $("btnCreate").addEventListener("click", async () => {
 
 $("btnJoin").addEventListener("click", async () => {
     clickSound();
+    // ✅ gesto: fuerza unlock/play
+    await hardUnlockMusic();
+
     const name = $("nameInput").value.trim();
     const code = $("roomInput").value.trim();
     if (!name) return alert("Pon tu nombre.");

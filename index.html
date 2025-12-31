@@ -23,9 +23,8 @@
             <button id="toggleSnow" class="miniBtn">ON</button>
         </div>
 
-        <div class="cornerRow">
-            <span>🐢 Velocidad nieve</span>
-            <input id="snowSpeed" class="miniRange" type="range" min="0.2" max="1.6" step="0.05" />
+        <div class="cornerRow" style="justify-content: space-around"><input id="snowSpeed" type="range" min="0.2"
+                max="1.6" step="0.05" value="0.2" />
         </div>
 
         <div class="cornerRow">
@@ -35,7 +34,7 @@
 
         <div class="cornerRow">
             <span>🎶 Música</span>
-            <button id="toggleMusic" class="miniBtn">OFF</button>
+            <button id="toggleMusic" class="miniBtn">ON</button>
         </div>
 
         <div class="cornerRow">
@@ -45,8 +44,9 @@
     </div>
 
     <div class="wrap">
+        <div class="garland" aria-hidden="true"></div>
+
         <header class="top">
-            <div class="garland" aria-hidden="true"></div>
             <h1 id="gameTitle">🎄 Juego Navideño</h1>
             <p class="muted" id="subtitle">Entra, espera a tus amigos y empezad.</p>
         </header>
@@ -185,7 +185,6 @@
                     <div class="youName" id="youName">—</div>
                     <div class="youRole" id="youRole">—</div>
 
-                    <!-- NUEVO BOTÓN GRANDE -->
                     <button id="youExecBtn" class="execBtn" type="button">
                         ✅ Marcar como hecha
                     </button>
@@ -270,7 +269,6 @@
                     Ya no hay acciones disponibles con los filtros actuales.
                 </p>
 
-                <!-- SOLO: Host -> Marcar todas + Salir. No host -> Solo salir -->
                 <div class="row" style="justify-content:center; flex-wrap:wrap;" id="overlayBtnsHost">
                     <button id="btnOverlayEnableAll" class="primary">Marcar todas</button>
                     <button id="btnExitNoActions" class="ghost">Salir</button>

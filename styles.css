@@ -41,11 +41,12 @@ body {
     margin: 0;
     font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
 
-    /* Fondo navideño más “pro” y sin cortes visibles */
+    /* Fondo navideño más “pro” */
     background:
         radial-gradient(1200px 900px at 10% 0%, rgba(255, 77, 90, .12), transparent 60%),
         radial-gradient(1200px 900px at 90% 25%, rgba(47, 227, 154, .10), transparent 55%),
         radial-gradient(900px 700px at 35% 80%, rgba(125, 211, 252, .12), transparent 60%),
+        radial-gradient(700px 500px at 70% 70%, rgba(255, 213, 138, .10), transparent 62%),
         linear-gradient(180deg, var(--bg), var(--bg2));
     background-attachment: fixed;
     color: var(--text);
@@ -76,26 +77,7 @@ body {
     position: relative;
 }
 
-/* Garland (nuevo look) */
-.garland {
-    height: 18px;
-    margin-bottom: 10px;
-    border-radius: 999px;
-    background:
-        radial-gradient(circle at 10px 9px, rgba(255, 213, 138, .65), transparent 60%),
-        radial-gradient(circle at 30px 9px, rgba(255, 77, 90, .55), transparent 60%),
-        radial-gradient(circle at 50px 9px, rgba(47, 227, 154, .55), transparent 60%),
-        radial-gradient(circle at 70px 9px, rgba(125, 211, 252, .55), transparent 60%),
-        repeating-linear-gradient(90deg,
-            rgba(255, 255, 255, .06) 0 14px,
-            rgba(0, 0, 0, .00) 14px 28px);
-    background-size: 80px 18px, 80px 18px, 80px 18px, 80px 18px, 28px 18px;
-    filter: blur(.15px);
-    opacity: .9;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, .16);
-    border: 1px solid rgba(255, 255, 255, .08);
-}
-
+/* headings */
 h1 {
     margin: 0 0 4px;
     letter-spacing: .2px;
@@ -120,7 +102,7 @@ h3 {
     position: relative;
 }
 
-.card::before {
+/* .card::before {
     content: "";
     position: absolute;
     inset: -1px;
@@ -131,7 +113,7 @@ h3 {
     mask: linear-gradient(#000, #000) content-box, linear-gradient(#000, #000);
     -webkit-mask: linear-gradient(#000, #000) content-box, linear-gradient(#000, #000);
     padding: 1px;
-}
+} */
 
 .card-inner {
     margin-top: 12px;
@@ -140,6 +122,69 @@ h3 {
     border-radius: 16px;
     padding: 12px;
 }
+
+
+
+
+
+
+
+.card {
+    background: var(--card);
+    border: 1px solid rgba(255, 255, 255, .10);
+    border-radius: 18px;
+    padding: 14px;
+    margin: 12px 0;
+    box-shadow: 0 14px 50px rgba(0, 0, 0, .28);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    position: relative;
+    overflow: hidden;
+    /* importante para la cinta */
+}
+
+/* Cinta superior sutil */
+.card::before {
+    content: "";
+    position: absolute;
+    left: 12px;
+    right: 12px;
+    top: 10px;
+    height: 3px;
+    border-radius: 999px;
+    background: linear-gradient(90deg,
+            rgba(255, 77, 90, .55),
+            rgba(255, 213, 138, .55),
+            rgba(47, 227, 154, .55));
+    opacity: .55;
+}
+
+/* Brillo suave diagonal (muy “pro”) */
+.card::after {
+    content: "";
+    position: absolute;
+    inset: -40%;
+    background: radial-gradient(circle at 30% 20%, rgba(255, 255, 255, .10), transparent 55%);
+    transform: rotate(12deg);
+    opacity: .35;
+    pointer-events: none;
+}
+
+/* Card inner un poco más definida */
+.card-inner {
+    margin-top: 12px;
+    background: rgba(255, 255, 255, .04);
+    border: 1px solid rgba(255, 255, 255, .08);
+    border-radius: 16px;
+    padding: 12px;
+}
+
+
+
+
+
+
+
 
 .hidden {
     display: none !important;
@@ -526,4 +571,206 @@ html[data-theme="light"] .cornerPanel {
     margin: 0;
     padding: 0;
     accent-color: var(--accent);
+}
+
+/* =========================
+   NAVIDAD PRO: DECORACIÓN
+   ========================= */
+
+/* Fondo: copos/estrellas muy sutiles + brillo */
+body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+    opacity: .65;
+    background:
+        radial-gradient(2px 2px at 15% 25%, rgba(255, 255, 255, .18) 40%, transparent 60%),
+        radial-gradient(2px 2px at 40% 10%, rgba(255, 213, 138, .18) 40%, transparent 60%),
+        radial-gradient(1.5px 1.5px at 75% 30%, rgba(125, 211, 252, .16) 40%, transparent 60%),
+        radial-gradient(2px 2px at 85% 70%, rgba(255, 77, 90, .14) 40%, transparent 60%),
+        radial-gradient(1.5px 1.5px at 30% 75%, rgba(47, 227, 154, .14) 40%, transparent 60%);
+    filter: blur(.2px);
+    mix-blend-mode: screen;
+}
+
+/* Suave viñeta navideña */
+body::after {
+    content: "";
+    position: fixed;
+    inset: -40px;
+    pointer-events: none;
+    z-index: 0;
+    background:
+        radial-gradient(900px 600px at 50% 0%, rgba(255, 213, 138, .08), transparent 60%),
+        radial-gradient(1200px 900px at 50% 110%, rgba(0, 0, 0, .35), transparent 55%);
+    opacity: .8;
+}
+
+/* Título con brillo y “navidad premium” */
+#gameTitle {
+    position: relative;
+    display: inline-block;
+    padding: 8px 12px;
+    border-radius: 14px;
+    text-shadow:
+        0 2px 18px rgba(255, 213, 138, .25),
+        0 2px 22px rgba(125, 211, 252, .18);
+}
+
+#gameTitle::after {
+    content: "";
+    position: absolute;
+    inset: -2px;
+    border-radius: 16px;
+    pointer-events: none;
+    background: linear-gradient(90deg,
+            rgba(255, 77, 90, .25),
+            rgba(255, 213, 138, .22),
+            rgba(47, 227, 154, .20),
+            rgba(125, 211, 252, .18));
+    opacity: .28;
+    filter: blur(10px);
+}
+
+/* Guirnalda (luces) */
+.garland {
+    height: 26px;
+    margin: 0 0 10px;
+    border-radius: 999px;
+    position: relative;
+    overflow: hidden;
+    opacity: .95;
+    background:
+        radial-gradient(circle at 10px 50%, rgba(255, 213, 138, .95) 0 5px, transparent 6px),
+        radial-gradient(circle at 40px 50%, rgba(47, 227, 154, .95) 0 5px, transparent 6px),
+        radial-gradient(circle at 70px 50%, rgba(255, 77, 90, .95) 0 5px, transparent 6px),
+        radial-gradient(circle at 100px 50%, rgba(125, 211, 252, .95) 0 5px, transparent 6px),
+        radial-gradient(circle at 130px 50%, rgba(255, 213, 138, .95) 0 5px, transparent 6px),
+        radial-gradient(circle at 160px 50%, rgba(47, 227, 154, .95) 0 5px, transparent 6px),
+        radial-gradient(circle at 190px 50%, rgba(255, 77, 90, .95) 0 5px, transparent 6px),
+        radial-gradient(circle at 220px 50%, rgba(125, 211, 252, .95) 0 5px, transparent 6px),
+        radial-gradient(circle at 250px 50%, rgba(255, 213, 138, .95) 0 5px, transparent 6px),
+        linear-gradient(180deg, rgba(255, 255, 255, .06), rgba(255, 255, 255, .02));
+    background-size: 280px 26px, 280px 26px, 280px 26px, 280px 26px, 280px 26px,
+        280px 26px, 280px 26px, 280px 26px, 280px 26px, 100% 100%;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, .22);
+    border: 1px solid var(--line);
+}
+
+.garland::before {
+    /* cable */
+    content: "";
+    position: absolute;
+    left: -40px;
+    right: -40px;
+    top: 14px;
+    height: 14px;
+    border-top: 2px solid rgba(255, 255, 255, .14);
+    border-radius: 999px;
+    transform: rotate(-1.2deg);
+    opacity: .7;
+}
+
+.garland::after {
+    /* parpadeo */
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: inherit;
+    filter: blur(.2px);
+    animation: garlandTwinkle 2.6s ease-in-out infinite;
+    opacity: .85;
+}
+
+@keyframes garlandTwinkle {
+
+    0%,
+    100% {
+        filter: brightness(1) saturate(1);
+        opacity: .75;
+    }
+
+    50% {
+        filter: brightness(1.25) saturate(1.15);
+        opacity: 1;
+    }
+}
+
+/* Tarjetas: brillo navideño más pro */
+.card {
+    overflow: hidden;
+}
+
+.card:hover {
+    border-color: rgba(255, 213, 138, .22);
+    box-shadow:
+        0 18px 60px rgba(0, 0, 0, .35),
+        0 0 0 1px rgba(255, 213, 138, .12),
+        0 0 40px rgba(255, 77, 90, .06),
+        0 0 40px rgba(47, 227, 154, .06);
+    transform: translateY(-1px);
+}
+
+.card::after {
+    content: "";
+    position: absolute;
+    inset: -40px;
+    pointer-events: none;
+    background: radial-gradient(600px 260px at 20% 10%, rgba(255, 213, 138, .10), transparent 60%);
+    opacity: .7;
+}
+
+/* Botones: hover con “sparkle” */
+button {
+    position: relative;
+    overflow: hidden;
+}
+
+button::after {
+    content: "";
+    position: absolute;
+    top: -80%;
+    left: -40%;
+    width: 60%;
+    height: 260%;
+    transform: rotate(18deg);
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, .22), transparent);
+    opacity: 0;
+}
+
+button:hover::after {
+    opacity: 1;
+    animation: btnShine .8s ease forwards;
+}
+
+@keyframes btnShine {
+    from {
+        left: -40%;
+    }
+
+    to {
+        left: 120%;
+    }
+}
+
+/* Pills más “oro” */
+.pill {
+    box-shadow: inset 0 0 0 1px rgba(255, 213, 138, .08);
+}
+
+/* Tabla: cabecera con tono navideño */
+.table thead th {
+    background: rgba(255, 213, 138, .06);
+    border-bottom: 1px solid rgba(255, 213, 138, .14);
+}
+
+/* Light theme: reduce brillos para que no “cante” */
+html[data-theme="light"] body::after {
+    opacity: .55;
+}
+
+html[data-theme="light"] .garland {
+    opacity: .75;
 }
