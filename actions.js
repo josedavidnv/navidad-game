@@ -72,7 +72,7 @@ export const DEFAULT_ACTIONS = [
     "Haz un brindis improvisado",
     "Confiesa algo falso pero muy convincente",
     "Habla como si estuvieras narrando un documental",
-    "Reacciona a todo con un '¡increíble!'",
+    "Reacciona a todo con un ¡increíble!",
     "Termina todas tus frases con '…y eso es Navidad'",
     "Habla como si tuvieras frío extremo",
     "Actúa como si todo fuera tu culpa",

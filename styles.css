@@ -409,12 +409,22 @@ button.ghost {
     font-size: 1.25rem;
     font-weight: 900;
     margin-top: 2px;
+    color: var(--text);
 }
 
+/* Acción: más clara y diferenciada */
 .youRole {
-    font-size: 1.35rem;
+    font-size: 1.4rem;
     font-weight: 950;
     margin-top: 6px;
+    color: var(--accent);
+    text-shadow: 0 0 10px rgba(125, 211, 252, .25);
+}
+
+/* Si es comodín */
+.youRole.wildcard {
+    color: var(--gold);
+    text-shadow: 0 0 12px rgba(255, 213, 138, .35);
 }
 
 .check {
