@@ -32,7 +32,6 @@ function setSubtitleVisible(visible) {
 
 function openNoActionsOverlay(isHostNow) {
     show("overlayNoActions");
-    // SOLO: host -> botones host; user -> botones user
     $("overlayBtnsHost").style.display = isHostNow ? "flex" : "none";
     $("overlayBtnsUser").style.display = isHostNow ? "none" : "flex";
 }
@@ -41,11 +40,13 @@ function closeNoActionsOverlay() {
     hide("overlayNoActions");
 }
 
-// ---------- Local UX prefs (snow/sound/theme) ----------
+// ---------- Local UX prefs (snow/sound/theme/music/snowSpeed) ----------
 const LS = {
     snow: "xmas_snow_enabled",
     sound: "xmas_sound_enabled",
-    theme: "xmas_theme" // "dark" | "light"
+    theme: "xmas_theme",      // "dark" | "light"
+    music: "xmas_music_enabled",
+    snowSpeed: "xmas_snow_speed" // number string
 };
 
 function getBoolLS(key, fallback = true) {
@@ -53,21 +54,30 @@ function getBoolLS(key, fallback = true) {
     if (v === null) return fallback;
     return v === "1";
 }
-function setBoolLS(key, val) {
-    localStorage.setItem(key, val ? "1" : "0");
+function setBoolLS(key, val) { localStorage.setItem(key, val ? "1" : "0"); }
+
+function getThemeLS() { return localStorage.getItem(LS.theme) || "dark"; }
+function setThemeLS(v) { localStorage.setItem(LS.theme, v); }
+
+function getSnowSpeedLS() {
+    const raw = localStorage.getItem(LS.snowSpeed);
+    if (raw === null || raw === "") {
+        // default: 20%
+        return 0.2;
+    }
+    const n = Number(raw);
+    return Number.isFinite(n) ? Math.min(1.6, Math.max(0.2, n)) : 0.2;
 }
-function getThemeLS() {
-    return localStorage.getItem(LS.theme) || "dark";
+
+function setSnowSpeedLS(v) {
+    const n = Math.min(1.6, Math.max(0.2, Number(v)));
+    localStorage.setItem(LS.snowSpeed, String(n));
 }
-function setThemeLS(v) {
-    localStorage.setItem(LS.theme, v);
-}
+
+function canSound() { return getBoolLS(LS.sound, true); }
 
 // ---------- Tiny sounds (WebAudio, no files) ----------
 let audioCtx = null;
-function canSound() {
-    return getBoolLS(LS.sound, true);
-}
 function beep(freq = 660, durMs = 40, type = "sine", gainVal = 0.045) {
     if (!canSound()) return;
     try {
@@ -99,6 +109,46 @@ function applyThemeFromLS() {
 }
 applyThemeFromLS();
 
+// ---------- Background music (HTMLAudio, needs user gesture) ----------
+const bgMusic = $("bgMusic");
+let musicUnlocked = false;
+
+function isMusicEnabled() { return getBoolLS(LS.music, false); }
+function setMusicEnabled(v) { setBoolLS(LS.music, v); }
+
+async function tryPlayMusic() {
+    if (!bgMusic) return;
+    if (!isMusicEnabled()) return;
+    try {
+        bgMusic.volume = 0.35;
+        await bgMusic.play();
+    } catch {
+        // autoplay blocked until gesture; handled by unlock
+    }
+}
+
+function stopMusic() {
+    if (!bgMusic) return;
+    try { bgMusic.pause(); } catch { /* ignore */ }
+}
+
+function updateMusicBtn() {
+    const on = isMusicEnabled();
+    $("toggleMusic").textContent = on ? "ON" : "OFF";
+}
+
+function unlockMusicOnFirstGesture() {
+    if (musicUnlocked) return;
+    musicUnlocked = true;
+    // try start if enabled
+    tryPlayMusic();
+    // remove listeners
+    window.removeEventListener("pointerdown", unlockMusicOnFirstGesture, { capture: true });
+    window.removeEventListener("keydown", unlockMusicOnFirstGesture, { capture: true });
+}
+window.addEventListener("pointerdown", unlockMusicOnFirstGesture, { capture: true, once: false });
+window.addEventListener("keydown", unlockMusicOnFirstGesture, { capture: true, once: false });
+
 // ---------- Corner panel ----------
 (function initCornerPanel() {
     const btn = $("cornerToggleBtn");
@@ -109,6 +159,20 @@ applyThemeFromLS();
 
     $("toggleSnow").textContent = snowOn ? "ON" : "OFF";
     $("toggleSound").textContent = soundOn ? "ON" : "OFF";
+    updateMusicBtn();
+
+    // snow speed UI
+    const speedInput = $("snowSpeed");
+    if (speedInput) {
+        speedInput.value = String(getSnowSpeedLS());
+        speedInput.addEventListener("input", () => {
+            setSnowSpeedLS(speedInput.value);
+        });
+        speedInput.addEventListener("change", () => {
+            clickSound();
+        });
+    }
+
     applyThemeFromLS();
 
     btn.addEventListener("click", () => {
@@ -132,6 +196,15 @@ applyThemeFromLS();
         toggleSoundFx(next);
     });
 
+    $("toggleMusic").addEventListener("click", async () => {
+        clickSound();
+        const next = !isMusicEnabled();
+        setMusicEnabled(next);
+        updateMusicBtn();
+        if (next) await tryPlayMusic();
+        else stopMusic();
+    });
+
     $("toggleTheme").addEventListener("click", () => {
         clickSound();
         const cur = getThemeLS();
@@ -149,8 +222,6 @@ applyThemeFromLS();
 })();
 
 // ---------- Snow (canvas particles, seamless) ----------
-// FIX: en móvil te caía más rápido -> ahora la velocidad se calcula por "frames" (dt normalizado)
-// y además bajamos la velocidad base.
 let snowRAF = null;
 let snowParticles = [];
 let snowLastT = 0;
@@ -173,9 +244,8 @@ function makeSnowParticle() {
         x: Math.random() * w,
         y: Math.random() * h,
         r: 0.8 + Math.random() * 2.2,
-        // velocidades "por frame" (aprox a 60fps)
-        vx: (-0.35 + Math.random() * 0.7),      // lateral suave
-        vy: (0.55 + Math.random() * 1.15),      // más lento que antes
+        vx: -0.12 + Math.random() * 0.24,
+        vy: 0.22 + Math.random() * 0.60, // más lenta base
         a: 0.35 + Math.random() * 0.55
     };
 }
@@ -199,22 +269,20 @@ function stepSnow(ts) {
     const w = window.innerWidth;
     const h = window.innerHeight;
 
-    const dtMs = Math.min(40, ts - (snowLastT || ts)); // clamp
+    const dt = Math.min(24, ts - (snowLastT || ts)); // clamp más estricto = menos “saltos” y menos velocidad aparente
     snowLastT = ts;
 
-    // Normaliza a "frames" (16.67ms ~ 60fps)
-    const dt = dtMs / 16.67;
+    const speed = getSnowSpeedLS();
 
     ensureSnowParticles();
     ctx.clearRect(0, 0, w, h);
 
-    // dibuja
     for (const p of snowParticles) {
-        p.x += p.vx * dt;
-        p.y += p.vy * dt;
+        p.x += p.vx * dt * speed;
+        p.y += p.vy * dt * speed;
 
-        // sway muy leve
-        p.x += Math.sin((p.y / 70) + (ts / 1800)) * (0.18 * dt);
+        // sway leve
+        p.x += Math.sin((p.y / 70) + (ts / 1800)) * 0.08 * speed;
 
         if (p.y > h + 8) { p.y = -8; p.x = Math.random() * w; }
         if (p.x < -10) p.x = w + 10;
@@ -268,6 +336,8 @@ let isHost = false;
 let roomUnsub = null;
 let leavingNow = false; // <-- para NO mostrar “sala borrada”
 
+let heartbeatTimer = null;
+
 function roomRef(path = "") {
     return ref(db, `rooms/${roomCode}${path ? "/" + path : ""}`);
 }
@@ -281,6 +351,7 @@ function goLanding() {
     isHost = false;
     leavingNow = false;
 
+    stopHeartbeat();
     setSubtitleVisible(true);
 
     hide("screen-lobby");
@@ -302,6 +373,41 @@ function goGame() {
     hide("screen-landing");
     hide("screen-lobby");
     show("screen-game");
+}
+
+// ---------- Presence helpers ----------
+function nowMs() { return Date.now(); }
+
+// “online” si lastSeen hace menos de X
+const ONLINE_WINDOW_MS = 2 * 60 * 1000; // 2 min
+
+function isOnlinePlayer(p) {
+    const t = p?.lastSeen;
+    if (!t) return false;
+    return (nowMs() - t) <= ONLINE_WINDOW_MS;
+}
+
+function stopHeartbeat() {
+    if (heartbeatTimer) clearInterval(heartbeatTimer);
+    heartbeatTimer = null;
+}
+
+function startHeartbeat() {
+    stopHeartbeat();
+    if (!roomCode || !playerId) return;
+
+    const beat = async () => {
+        try {
+            await update(roomRef(`players/${playerId}`), {
+                lastSeen: serverTimestamp(),
+                online: true,
+                inRoom: true
+            });
+        } catch { /* ignore */ }
+    };
+
+    beat();
+    heartbeatTimer = setInterval(beat, 25000); // 25s
 }
 
 // ---------- Room utils ----------
@@ -366,41 +472,23 @@ async function ensureHost() {
     }
 }
 
-// ---------- Players: “activos” aunque estén offline ----------
-// Un jugador solo se va de verdad si:
-// - pulsa “Salir” (leftExplicit: true) o
-// - el host lo elimina (removed: true)
-function isActivePlayer(p) {
-    if (!p) return false;
-    if (p.removed) return false;
-    if (p.leftExplicit) return false;
-    return true;
-}
-
-function getActiveIds(roomData) {
-    const players = roomData.players || {};
-    return Object.keys(players).filter(pid => isActivePlayer(players[pid]));
-}
-
 // ---------- Player join / rejoin + unique names ----------
 function findPlayerIdByName(roomData, name) {
     const players = roomData.players || {};
     const target = normName(name);
     for (const [pid, p] of Object.entries(players)) {
-        if (!p) continue;
-        if (!isActivePlayer(p)) continue;
         if (normName(p?.name) === target) return pid;
     }
     return null;
 }
 
-function isNameTakenByOtherConnected(roomData, name) {
+function isNameTakenByOtherInRoom(roomData, name, myExistingPid = null) {
     const players = roomData.players || {};
     const target = normName(name);
     for (const [pid, p] of Object.entries(players)) {
         if (!p) continue;
-        if (!isActivePlayer(p)) continue;
-        if (normName(p.name) === target && p.connected) return pid;
+        if (myExistingPid && pid === myExistingPid) continue;
+        if (normName(p.name) === target && p.inRoom) return pid;
     }
     return null;
 }
@@ -413,36 +501,46 @@ async function addNewPlayerToRoom() {
     await set(newRef, {
         name: playerName,
         joinedAt: serverTimestamp(),
-        connected: true,
-        leftExplicit: false,
-        removed: false
+        inRoom: true,
+        online: true,
+        lastSeen: serverTimestamp(),
+        leftAt: null
     });
 
-    // IMPORTANTE: onDisconnect solo marca offline, NO “sale” del juego
-    onDisconnect(newRef).update({ connected: false });
+    // OJO: en móvil esto saltará al bloquear/pasar a background. Está bien:
+    // no “sale” de la sala (inRoom sigue true), solo marca online false.
+    onDisconnect(newRef).update({
+        online: false,
+        lastSeen: serverTimestamp()
+    });
 }
 
 async function reconnectExistingPlayer(existingPid) {
     playerId = existingPid;
     await update(roomRef(`players/${playerId}`), {
-        connected: true,
-        leftExplicit: false,
-        removed: false
+        inRoom: true,
+        online: true,
+        lastSeen: serverTimestamp(),
+        leftAt: null
     });
-    onDisconnect(roomRef(`players/${playerId}`)).update({ connected: false });
+    onDisconnect(roomRef(`players/${playerId}`)).update({
+        online: false,
+        lastSeen: serverTimestamp()
+    });
 }
 
 async function enterRoomFlow(roomData) {
-    const takenPid = isNameTakenByOtherConnected(roomData, playerName);
+    const existingPid = findPlayerIdByName(roomData, playerName);
+    const takenPid = isNameTakenByOtherInRoom(roomData, playerName, existingPid);
     if (takenPid) {
         alert("Ese nombre ya lo está usando alguien en la sala. Elige otro 🙂");
         return false;
     }
 
-    const existingPid = findPlayerIdByName(roomData, playerName);
-
     const phase = roomData.phase || "lobby";
     const lockJoin = !!roomData.settings?.lockJoin;
+
+    // Si está en game, permitimos entrar solo si ya existía ese jugador (rejoin)
     if (phase === "game" && lockJoin && !existingPid) {
         alert("La partida ya ha empezado y la sala está cerrada. No se pueden unir nuevos jugadores.");
         return false;
@@ -453,6 +551,7 @@ async function enterRoomFlow(roomData) {
 
     await ensureHost();
     subscribeRoom();
+    startHeartbeat();
     return true;
 }
 
@@ -495,14 +594,19 @@ function renderActionCounts(roomData) {
 }
 
 // ---------- Game logic helpers ----------
+function getInRoomIds(roomData) {
+    const players = roomData.players || {};
+    return Object.keys(players).filter(pid => players[pid]?.inRoom);
+}
+
 function computeAllExecuted(roomData) {
     const assignments = roomData.game?.assignments || {};
     const players = roomData.players || {};
-    const activeIds = getActiveIds(roomData);
+    const inRoomIds = Object.keys(players).filter(pid => players[pid]?.inRoom);
 
-    if (activeIds.length === 0) return false;
+    if (inRoomIds.length === 0) return false;
 
-    for (const pid of activeIds) {
+    for (const pid of inRoomIds) {
         const a = assignments[pid];
         if (!a || !a.action) return false;
         if (!a.executed) return false;
@@ -534,21 +638,21 @@ function autoDisableIfNoRepeat(updates, roomData, action) {
 async function startGame(roomData) {
     if (!isHost) return;
 
-    const activeIds = getActiveIds(roomData);
-    if (activeIds.length < 2) {
+    const inRoomIds = getInRoomIds(roomData);
+    if (inRoomIds.length < 2) {
         alert("Mínimo 2 jugadores para empezar.");
         return;
     }
 
     // VALIDACIÓN: acciones activas >= jugadores
     const poolEnabled = buildEnabledPool(roomData);
-    if (poolEnabled.length < activeIds.length) {
-        alert(`No puedes empezar: hay ${activeIds.length} jugadores y solo ${poolEnabled.length} acciones activas.\nActiva más acciones o añade nuevas.`);
+    if (poolEnabled.length < inRoomIds.length) {
+        alert(`No puedes empezar: hay ${inRoomIds.length} jugadores y solo ${poolEnabled.length} acciones activas.\nActiva más acciones o añade nuevas.`);
         return;
     }
 
     const useWildcard = !!roomData.settings?.useWildcard;
-    const wildcardPlayerId = useWildcard ? pickRandom(activeIds) : null;
+    const wildcardPlayerId = useWildcard ? pickRandom(inRoomIds) : null;
 
     const pool = poolEnabled;
     const noRepeat = !!roomData.settings?.noRepeat;
@@ -563,7 +667,7 @@ async function startGame(roomData) {
     updates["game/assignments"] = {};
 
     const assignments = {};
-    const order = shuffle([...activeIds]);
+    const order = shuffle([...inRoomIds]);
 
     for (const pid of order) {
         const pick = pickAction(roomData, pool, usedActions, noRepeat);
@@ -603,8 +707,8 @@ async function nextRound(roomData) {
     if (!isHost) return;
     if (!computeAllExecuted(roomData)) return;
 
-    const activeIds = getActiveIds(roomData);
-    if (activeIds.length < 1) return;
+    const inRoomIds = getInRoomIds(roomData);
+    if (inRoomIds.length < 1) return;
 
     const useWildcard = !!roomData.settings?.useWildcard;
     const noRepeat = !!roomData.settings?.noRepeat;
@@ -615,12 +719,12 @@ async function nextRound(roomData) {
 
     let newWildcard = null;
     if (useWildcard) {
-        const candidates = activeIds.filter(pid => pid !== oldWildcard);
-        newWildcard = candidates.length ? pickRandom(candidates) : pickRandom(activeIds);
+        const candidates = inRoomIds.filter(pid => pid !== oldWildcard);
+        newWildcard = candidates.length ? pickRandom(candidates) : pickRandom(inRoomIds);
     }
 
     const newAssignments = {};
-    const order = shuffle([...activeIds]);
+    const order = shuffle([...inRoomIds]);
 
     for (const pid of order) {
         const pick = pickAction(roomData, pool, usedActions, noRepeat);
@@ -660,27 +764,30 @@ async function nextRound(roomData) {
     await update(roomRef(), updates);
 }
 
-// ---------- Room cleanup (destroy only if everyone explicitly left or removed) ----------
+// ---------- Room cleanup (destroy if empty) ----------
 async function maybeDestroyRoomIfEmpty() {
     if (!roomCode) return;
     const snap = await get(roomRef());
     if (!snap.exists()) return;
     const data = snap.val();
     const players = data.players || {};
-    const stillActive = Object.values(players).some(p => isActivePlayer(p));
-    if (!stillActive) await set(roomRef(), null);
+    const inRoomCount = Object.values(players).filter(p => p?.inRoom).length;
+    if (inRoomCount === 0) await set(roomRef(), null);
 }
 
 async function leaveRoomAndMaybeDestroy() {
     leavingNow = true;
     clickSound();
+    stopHeartbeat();
+
     if (roomCode && playerId) {
         try {
-            // SALIR = salida real
+            // Salir explícito: aquí sí marcamos inRoom:false
             await update(roomRef(`players/${playerId}`), {
-                connected: false,
-                leftExplicit: true,
-                leftAt: serverTimestamp()
+                inRoom: false,
+                online: false,
+                leftAt: serverTimestamp(),
+                lastSeen: serverTimestamp()
             });
         } catch { /* ignore */ }
         try { await maybeDestroyRoomIfEmpty(); } catch { /* ignore */ }
@@ -688,34 +795,41 @@ async function leaveRoomAndMaybeDestroy() {
     goLanding();
 }
 
+// ---------- Host: remove player ----------
+async function hostRemovePlayer(pid) {
+    if (!roomCode || !isHost) return;
+    if (!pid) return;
+
+    const snap = await get(roomRef());
+    const data = snap.val();
+    if (!data) return;
+
+    // No auto-kick al host (pero si quieres, quita este guard)
+    if (data.hostPlayerId === pid) {
+        alert("No puedes eliminar al host.");
+        return;
+    }
+
+    clickSound();
+
+    const updates = {};
+    updates[`players/${pid}/inRoom`] = false;
+    updates[`players/${pid}/online`] = false;
+    updates[`players/${pid}/leftAt`] = serverTimestamp();
+    updates[`players/${pid}/lastSeen`] = serverTimestamp();
+
+    // Quitarlo de asignaciones para no bloquear rondas
+    updates[`game/assignments/${pid}`] = null;
+
+    await update(roomRef(), updates);
+    await maybeDestroyRoomIfEmpty();
+}
+
 // ---------- Host visibility ----------
 function renderHostVisibility() {
     $("hostLobbyControls").style.display = isHost ? "" : "none";
     $("hostLobbyStartRow").style.display = isHost ? "flex" : "none";
     $("hostGameControls").style.display = isHost ? "" : "none";
-}
-
-// ---------- Host: remove player ----------
-async function hostRemovePlayer(pid) {
-    if (!roomCode || !isHost) return;
-    if (!pid) return;
-    const snap = await get(roomRef());
-    const data = snap.val();
-    if (!data) return;
-    if (data.hostPlayerId === pid) return; // no borrar host
-
-    clickSound();
-
-    const updates = {};
-    updates[`players/${pid}/removed`] = true;
-    updates[`players/${pid}/connected`] = false;
-    updates[`players/${pid}/leftExplicit`] = true;
-    updates[`players/${pid}/leftAt`] = serverTimestamp();
-
-    // si existe assignment, lo quitamos (opcional)
-    updates[`game/assignments/${pid}`] = null;
-
-    await update(roomRef(), updates);
 }
 
 // ---------- Actions manager UI ----------
@@ -784,26 +898,21 @@ function renderLobby(roomData) {
 
     const players = roomData.players || {};
     const entries = Object.entries(players)
-        .filter(([, p]) => isActivePlayer(p))
+        .filter(([, p]) => p?.inRoom) // <-- IMPORTANT: ya no filtramos por connected
         .sort((a, b) => (a[1]?.joinedAt || 0) - (b[1]?.joinedAt || 0));
 
     $("playersList").innerHTML = entries.map(([pid, p]) => {
         const you = pid === playerId ? ` <span class="badge ok">tú</span>` : "";
         const host = roomData.hostPlayerId === pid ? ` <span class="badge">host</span>` : "";
-        const offline = p.connected ? "" : ` <span class="badge offline">offline</span>`;
-        const kickBtn = (isHost && roomData.hostPlayerId !== pid)
-            ? ` <button class="iconBtn danger" data-kick="${escapeHtml(pid)}" title="Eliminar jugador">🗑️</button>`
+        const online = isOnlinePlayer(p) && p?.online !== false;
+        const off = online ? "" : ` <span class="badge offline">offline</span>`;
+        const kick = (isHost && pid !== roomData.hostPlayerId)
+            ? ` <button class="kickBtn" data-kick="${escapeHtml(pid)}" title="Eliminar jugador">🗑️</button>`
             : "";
-        return `
-            <li>
-              <div class="liRow">
-                <div class="liLeft">
-                  ${escapeHtml(p.name || "—")}${you}${host}${offline}
-                </div>
-                <div>${kickBtn}</div>
-              </div>
-            </li>
-        `;
+        return `<li>
+      <span>${escapeHtml(p.name || "—")}${you}${host}${off}</span>
+      <span>${kick}</span>
+    </li>`;
     }).join("");
 
     const noRepeat = !!roomData.settings?.noRepeat;
@@ -822,7 +931,7 @@ function renderLobby(roomData) {
         : `<li class="muted">Aún no hay acciones personalizadas.</li>`;
 
     $("hostHint").textContent = isHost
-        ? "Eres el host: puedes empezar la partida y cambiar ajustes."
+        ? "Eres el host: puedes empezar la partida, cambiar ajustes y eliminar jugadores."
         : "Esperando a que el host empiece.";
 
     renderHostVisibility();
@@ -871,26 +980,26 @@ function renderGame(roomData) {
             : "Marca cuando hayas hecho tu acción.")
         : "Cuando todos marquen hecho, cambian las acciones de todos.";
 
-    const activeIds = getActiveIds(roomData);
-    const rows = activeIds
+    // MOSTRAR TODOS los inRoom (online u offline), para que no “desaparezcan”
+    const inRoomIds = Object.keys(players).filter(pid => players[pid]?.inRoom);
+    const rows = inRoomIds
         .sort((a, b) => (players[a]?.name || "").localeCompare(players[b]?.name || "", "es"))
         .map(pid => {
             const p = players[pid];
             const name = p?.name || "—";
-            const offline = p?.connected ? "" : ` <span class="badge offline">offline</span>`;
             const a = assignments[pid]?.action || "—";
             const exec = !!assignments[pid]?.executed;
             const isW = !!assignments[pid]?.isWildcard;
+
+            const online = isOnlinePlayer(p) && p?.online !== false;
+            const off = online ? "" : ` <span class="badge offline">offline</span>`;
+
             const badge = isW
                 ? `<span class="badge">🎁</span> ${exec ? `<span class="badge ok">sí</span>` : `<span class="badge no">no</span>`}`
                 : (exec ? `<span class="badge ok">sí</span>` : `<span class="badge no">no</span>`);
 
-            const kickBtn = (isHost && roomData.hostPlayerId !== pid)
-                ? ` <button class="iconBtn danger" data-kick="${escapeHtml(pid)}" title="Eliminar jugador">🗑️</button>`
-                : "";
-
             return `<tr>
-        <td>${escapeHtml(name)}${pid === playerId ? ' <span class="badge ok">tú</span>' : ''}${offline} ${kickBtn}</td>
+        <td>${escapeHtml(name)}${pid === playerId ? ' <span class="badge ok">tú</span>' : ''}${off}</td>
         <td>${escapeHtml(a)}</td>
         <td>${badge}</td>
       </tr>`;
@@ -934,15 +1043,6 @@ function subscribeRoom() {
         }
 
         const data = snap.val();
-
-        // Si el host te ha eliminado (o marcaste salir), fuera.
-        const me = data.players?.[playerId];
-        if (playerId && me && (me.removed || me.leftExplicit)) {
-            alert("Has salido de la sala.");
-            goLanding();
-            return;
-        }
-
         isHost = (data.hostPlayerId === playerId);
 
         if (data.phase === "lobby") {
@@ -953,6 +1053,9 @@ function subscribeRoom() {
             renderGame(data);
             await nextRound(data);
         }
+
+        // música: si el usuario la dejó ON, intentamos (si está desbloqueado por gesto)
+        if (isMusicEnabled()) tryPlayMusic();
     });
 
     roomUnsub = () => off;
@@ -966,7 +1069,6 @@ async function copyRoomCode() {
         await navigator.clipboard.writeText(roomCode);
         successSound();
     } catch {
-        // fallback
         const ta = document.createElement("textarea");
         ta.value = roomCode;
         document.body.appendChild(ta);
@@ -1009,19 +1111,15 @@ $("btnLeaveGame").addEventListener("click", leaveRoomAndMaybeDestroy);
 $("btnCopyRoom").addEventListener("click", copyRoomCode);
 $("btnCopyRoom2").addEventListener("click", copyRoomCode);
 
-// Host kick (delegación)
+// Lobby: host kick button (event delegation)
 $("playersList").addEventListener("click", async (e) => {
     const t = e.target;
     if (!(t instanceof HTMLElement)) return;
     const pid = t.getAttribute("data-kick");
     if (!pid) return;
-    await hostRemovePlayer(pid);
-});
-$("assignmentsTable").addEventListener("click", async (e) => {
-    const t = e.target;
-    if (!(t instanceof HTMLElement)) return;
-    const pid = t.getAttribute("data-kick");
-    if (!pid) return;
+    if (!isHost) return;
+    const ok = confirm("¿Eliminar a este jugador de la sala?");
+    if (!ok) return;
     await hostRemovePlayer(pid);
 });
 

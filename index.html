@@ -12,13 +12,8 @@
     <!-- Snow canvas (full screen) -->
     <canvas id="snowCanvas" aria-hidden="true"></canvas>
 
-    <!-- Adornos extra (decorativos) -->
-    <div class="cornerOrn cornerOrn--tl" aria-hidden="true"></div>
-    <div class="cornerOrn cornerOrn--tr" aria-hidden="true"></div>
-
-    <!-- Música de fondo (necesitas el archivo en /assets) -->
-    <!-- Pon tu mp3 aquí: ./assets/xmas.mp3 -->
-    <audio id="bgMusic" src="./assets/xmas.mp3" loop preload="auto"></audio>
+    <!-- Background music (loop) -->
+    <audio id="bgMusic" src="./xmas.mp3" loop preload="auto"></audio>
 
     <!-- Corner toggles (solo local) -->
     <button id="cornerToggleBtn" class="cornerToggle" title="Ajustes visuales">⚙️</button>
@@ -27,14 +22,22 @@
             <span>❄️ Nieve</span>
             <button id="toggleSnow" class="miniBtn">ON</button>
         </div>
+
+        <div class="cornerRow">
+            <span>🐢 Velocidad nieve</span>
+            <input id="snowSpeed" class="miniRange" type="range" min="0.2" max="1.6" step="0.05" />
+        </div>
+
         <div class="cornerRow">
             <span>🔊 Sonidos</span>
             <button id="toggleSound" class="miniBtn">ON</button>
         </div>
+
         <div class="cornerRow">
-            <span>🎵 Música</span>
-            <button id="toggleMusic" class="miniBtn">ON</button>
+            <span>🎶 Música</span>
+            <button id="toggleMusic" class="miniBtn">OFF</button>
         </div>
+
         <div class="cornerRow">
             <span>🌗 Tema</span>
             <button id="toggleTheme" class="miniBtn">Oscuro</button>
@@ -43,9 +46,6 @@
 
     <div class="wrap">
         <header class="top">
-            <!-- Lucecitas extra -->
-            <div class="xmasLights" aria-hidden="true"></div>
-
             <div class="garland" aria-hidden="true"></div>
             <h1 id="gameTitle">🎄 Juego Navideño</h1>
             <p class="muted" id="subtitle">Entra, espera a tus amigos y empezad.</p>
@@ -93,6 +93,10 @@
             <div class="card-inner">
                 <h3>Gente en la sala</h3>
                 <ul id="playersList" class="list"></ul>
+                <p class="muted small" style="margin:10px 0 0;">
+                    Nota: si alguien se queda sin conexión, seguirá aquí marcado como <b>offline</b> hasta que vuelva o
+                    el host lo elimine.
+                </p>
             </div>
 
             <!-- SOLO HOST -->

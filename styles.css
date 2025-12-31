@@ -76,19 +76,24 @@ body {
     position: relative;
 }
 
+/* Garland (nuevo look) */
 .garland {
     height: 18px;
     margin-bottom: 10px;
     border-radius: 999px;
     background:
+        radial-gradient(circle at 10px 9px, rgba(255, 213, 138, .65), transparent 60%),
+        radial-gradient(circle at 30px 9px, rgba(255, 77, 90, .55), transparent 60%),
+        radial-gradient(circle at 50px 9px, rgba(47, 227, 154, .55), transparent 60%),
+        radial-gradient(circle at 70px 9px, rgba(125, 211, 252, .55), transparent 60%),
         repeating-linear-gradient(90deg,
-            rgba(255, 213, 138, .40) 0 10px,
-            rgba(255, 77, 90, .35) 10px 20px,
-            rgba(47, 227, 154, .32) 20px 30px,
-            rgba(125, 211, 252, .28) 30px 40px);
-    filter: blur(.2px);
-    opacity: .85;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, .12);
+            rgba(255, 255, 255, .06) 0 14px,
+            rgba(0, 0, 0, .00) 14px 28px);
+    background-size: 80px 18px, 80px 18px, 80px 18px, 80px 18px, 28px 18px;
+    filter: blur(.15px);
+    opacity: .9;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, .16);
+    border: 1px solid rgba(255, 255, 255, .08);
 }
 
 h1 {
@@ -236,28 +241,17 @@ button.ghost {
     margin-left: 6px;
 }
 
-.iconBtn.danger {
-    border-color: rgba(251, 113, 133, .35);
-    background: rgba(251, 113, 133, .10);
+/* Mini action button (kick) */
+.kickBtn {
+    padding: 6px 10px;
+    border-radius: 10px;
+    font-weight: 950;
+    border-color: rgba(255, 77, 90, .35);
+    background: rgba(255, 77, 90, .10);
 }
 
-.iconBtn.danger:hover {
-    border-color: rgba(251, 113, 133, .7);
-}
-
-/* Inline row inside list items */
-.liRow {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 10px;
-}
-
-.liLeft {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    flex-wrap: wrap;
+.kickBtn:hover {
+    border-color: rgba(255, 77, 90, .55);
 }
 
 .list {
@@ -272,6 +266,10 @@ button.ghost {
     border-radius: 12px;
     margin: 8px 0;
     background: rgba(255, 255, 255, .05);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
 }
 
 .big {
@@ -364,8 +362,9 @@ button.ghost {
 }
 
 .badge.offline {
-    border-color: rgba(167, 178, 214, .35);
-    background: rgba(167, 178, 214, .10);
+    border-color: rgba(255, 213, 138, .40);
+    background: rgba(255, 213, 138, .10);
+    color: var(--text);
 }
 
 /* Actions manager improved */
@@ -495,7 +494,7 @@ html[data-theme="light"] .overlayCard {
     right: 10px;
     bottom: 58px;
     z-index: 10000;
-    width: 190px;
+    width: 210px;
     border: 1px solid var(--line);
     border-radius: 14px;
     padding: 10px;
@@ -520,4 +519,11 @@ html[data-theme="light"] .cornerPanel {
     padding: 6px 10px;
     border-radius: 10px;
     font-weight: 900;
+}
+
+.miniRange {
+    width: 90px;
+    margin: 0;
+    padding: 0;
+    accent-color: var(--accent);
 }
