@@ -30,7 +30,7 @@ const db = getDatabase(fbApp);
 
 // ---------- State ----------
 let roomCode = null;
-let playerId = null;
+let playerId = null;     // clave en DB
 let playerName = null;
 let isHost = false;
 
@@ -39,6 +39,7 @@ let roomUnsub = null;
 function roomRef(path = "") {
     return ref(db, `rooms/${roomCode}${path ? "/" + path : ""}`);
 }
+
 function nowRoom() { return roomCode; }
 
 // ---------- Screen switching ----------
@@ -52,11 +53,13 @@ function goLanding() {
     hide("screen-game");
     show("screen-landing");
 }
+
 function goLobby() {
     hide("screen-landing");
     hide("screen-game");
     show("screen-lobby");
 }
+
 function goGame() {
     hide("screen-landing");
     hide("screen-lobby");
@@ -85,15 +88,20 @@ async function createRoom() {
 
     const initial = {
         createdAt: serverTimestamp(),
-        phase: "lobby",
-        hostPlayerId: null,
-        settings: { noRepeat: true },
-        actions: { baseCount: DEFAULT_ACTIONS.length, custom: [] },
+        phase: "lobby",           // lobby | game
+        hostPlayerId: null,       // se setea tras crear player
+        settings: {
+            noRepeat: true
+        },
+        actions: {
+            baseCount: DEFAULT_ACTIONS.length,
+            custom: []              // array de strings
+        },
         game: {
             round: 0,
             wildcardPlayerId: null,
-            usedActions: {},
-            assignments: {},
+            usedActions: {},        // map action -> true
+            assignments: {},        // playerId -> { action, executed }
             lastRotationAt: null
         }
     };
@@ -117,6 +125,7 @@ async function ensureHost() {
     const hostId = snap.val();
     isHost = (hostId === playerId);
 
+    // si no hay host, el primero que entra es host
     if (!hostId) {
         await set(roomRef("hostPlayerId"), playerId);
         isHost = true;
@@ -128,14 +137,7 @@ function buildActionsPool(roomData) {
     const custom = (roomData.actions?.custom || []).filter(Boolean);
     return [...DEFAULT_ACTIONS, ...custom];
 }
-function actionAlreadyUsed(roomData, action) {
-    return !!roomData.game?.usedActions?.[action];
-}
-function markUsed(roomUpdates, action) {
-    roomUpdates[`game/usedActions/${action}`] = true;
-}
 
-// ---------- Game logic ----------
 function computeAllExecuted(roomData) {
     const assignments = roomData.game?.assignments || {};
     const wildcardId = roomData.game?.wildcardPlayerId;
@@ -168,30 +170,35 @@ async function startGame(roomData) {
     const pool = buildActionsPool(roomData);
     const shuffledPlayers = shuffle(connectedIds.filter(pid => pid !== wildcardPlayerId));
 
-    const updates = {};
-    updates["phase"] = "game";
-    updates["game/round"] = 1;
-    updates["game/wildcardPlayerId"] = wildcardPlayerId;
-    updates["game/lastRotationAt"] = serverTimestamp();
-    updates["game/assignments"] = {};
-    updates["game/usedActions"] = roomData.game?.usedActions || {};
+    // ✅ IMPORTANTÍSIMO: construimos assignments completo (para no mezclar parent+child en update)
+    const assignments = {};
+    const usedActions = { ...(roomData.game?.usedActions || {}) };
 
     for (const pid of shuffledPlayers) {
         let action = null;
 
         if (noRepeat) {
-            const unused = pool.filter(a => !actionAlreadyUsed(roomData, a) && !updates[`game/usedActions/${a}`]);
+            const unused = pool.filter(a => !usedActions[a]);
             action = unused.length ? pickRandom(unused) : pickRandom(pool);
+            usedActions[action] = true;
         } else {
             action = pickRandom(pool);
         }
 
-        updates[`game/assignments/${pid}`] = { action, executed: false };
-        if (noRepeat) markUsed(updates, action);
+        assignments[pid] = { action, executed: false };
     }
 
-    updates[`game/assignments/${wildcardPlayerId}`] = { action: "COMODÍN", executed: true };
-    await update(roomRef(), updates);
+    // Comodín
+    assignments[wildcardPlayerId] = { action: "COMODÍN", executed: true };
+
+    await update(roomRef(), {
+        phase: "game",
+        "game/round": 1,
+        "game/wildcardPlayerId": wildcardPlayerId,
+        "game/lastRotationAt": serverTimestamp(),
+        "game/assignments": assignments,
+        "game/usedActions": usedActions
+    });
 }
 
 async function rotateWildcardIfNeeded(roomData) {
@@ -210,35 +217,40 @@ async function rotateWildcardIfNeeded(roomData) {
     const pool = buildActionsPool(roomData);
     const noRepeat = !!roomData.settings?.noRepeat;
 
-    const updates = {};
-    updates["game/round"] = (roomData.game?.round || 0) + 1;
-    updates["game/wildcardPlayerId"] = newWildcard;
-    updates["game/lastRotationAt"] = serverTimestamp();
+    const usedActions = { ...(roomData.game?.usedActions || {}) };
 
+    // El antiguo comodín ahora recibe UNA acción nueva
     let newAction = null;
     if (noRepeat) {
-        const used = roomData.game?.usedActions || {};
-        const unused = pool.filter(a => !used[a]);
+        const unused = pool.filter(a => !usedActions[a]);
         newAction = unused.length ? pickRandom(unused) : pickRandom(pool);
-        updates[`game/usedActions/${newAction}`] = true;
+        usedActions[newAction] = true;
     } else {
         newAction = pickRandom(pool);
     }
 
-    const currentAssignments = roomData.game?.assignments || {};
+    // construimos assignments nueva completa (más simple y consistente)
+    const prev = roomData.game?.assignments || {};
+    const assignments = {};
+
     for (const pid of connectedIds) {
         if (pid === newWildcard) {
-            updates[`game/assignments/${pid}`] = { action: "COMODÍN", executed: true };
+            assignments[pid] = { action: "COMODÍN", executed: true };
         } else if (pid === oldWildcard) {
-            updates[`game/assignments/${pid}`] = { action: newAction, executed: false };
+            assignments[pid] = { action: newAction, executed: false };
         } else {
-            const prev = currentAssignments[pid];
-            const action = prev?.action || pickRandom(pool);
-            updates[`game/assignments/${pid}`] = { action, executed: false };
+            const prevAction = prev[pid]?.action;
+            assignments[pid] = { action: prevAction || pickRandom(pool), executed: false };
         }
     }
 
-    await update(roomRef(), updates);
+    await update(roomRef(), {
+        "game/round": (roomData.game?.round || 0) + 1,
+        "game/wildcardPlayerId": newWildcard,
+        "game/lastRotationAt": serverTimestamp(),
+        "game/assignments": assignments,
+        "game/usedActions": usedActions
+    });
 }
 
 // ---------- UI render ----------
@@ -257,18 +269,22 @@ function renderLobby(roomData) {
         return `<li>${escapeHtml(p.name || "—")}${you}${host}</li>`;
     }).join("");
 
-    $("chkNoRepeat").checked = !!roomData.settings?.noRepeat;
+    // ✅ Host-only controls
+    if (isHost) show("hostControls"); else hide("hostControls");
 
+    // settings (solo para reflejar lo que haya)
+    const noRepeat = !!roomData.settings?.noRepeat;
+    $("chkNoRepeat").checked = noRepeat;
+
+    // custom actions
     const custom = (roomData.actions?.custom || []).filter(Boolean);
     $("customActionsList").innerHTML = custom.length
         ? custom.map(a => `<li>${escapeHtml(a)}</li>`).join("")
         : `<li class="muted">Aún no hay acciones personalizadas.</li>`;
 
     $("hostHint").textContent = isHost
-        ? "Eres el host: puedes empezar la partida."
+        ? "Eres el host: puedes cambiar ajustes y empezar la partida."
         : "Esperando a que el host empiece.";
-
-    $("btnStart").disabled = !isHost;
 }
 
 function renderGame(roomData) {
@@ -293,7 +309,9 @@ function renderGame(roomData) {
         ? "Eres el comodín. Cuando todos ejecuten su acción, tu acción cambiará y el comodín pasará a otra persona."
         : "Marca cuando hayas hecho tu acción.";
 
-    if (!isWildcard) $("youExecChk").checked = !!myAssign?.executed;
+    if (!isWildcard) {
+        $("youExecChk").checked = !!myAssign?.executed;
+    }
 
     const connectedIds = Object.keys(players).filter(pid => players[pid]?.connected);
     const rows = connectedIds
@@ -303,9 +321,7 @@ function renderGame(roomData) {
             const a = assignments[pid]?.action || "—";
             const exec = !!assignments[pid]?.executed;
             const isW = pid === wildcardId;
-            const badge = isW
-                ? `<span class="badge">COMODÍN</span>`
-                : (exec ? `<span class="badge ok">sí</span>` : `<span class="badge no">no</span>`);
+            const badge = isW ? `<span class="badge">COMODÍN</span>` : (exec ? `<span class="badge ok">sí</span>` : `<span class="badge no">no</span>`);
             return `<tr>
         <td>${escapeHtml(name)}${pid === playerId ? ' <span class="badge ok">tú</span>' : ''}</td>
         <td>${escapeHtml(a)}</td>
@@ -323,8 +339,9 @@ function renderGame(roomData) {
 // ---------- Listeners ----------
 function subscribeRoom() {
     if (roomUnsub) roomUnsub();
+    const r = roomRef();
 
-    const off = onValue(roomRef(), async (snap) => {
+    const off = onValue(r, async (snap) => {
         if (!snap.exists()) {
             alert("La sala ha sido borrada o no existe.");
             goLanding();
@@ -332,6 +349,8 @@ function subscribeRoom() {
         }
 
         const data = snap.val();
+
+        // actualizar host
         isHost = (data.hostPlayerId === playerId);
 
         if (data.phase === "lobby") {
@@ -340,11 +359,13 @@ function subscribeRoom() {
         } else {
             goGame();
             renderGame(data);
+
+            // host hace rotación si toca
             await rotateWildcardIfNeeded(data);
         }
     });
 
-    roomUnsub = off; // ✅ FIX
+    roomUnsub = () => off;
 }
 
 // ---------- UI events ----------
@@ -377,6 +398,7 @@ $("btnJoin").addEventListener("click", async () => {
 
     await addPlayerToRoom();
     await ensureHost();
+
     subscribeRoom();
 });
 
@@ -394,31 +416,43 @@ $("btnLeaveGame").addEventListener("click", async () => {
     goLanding();
 });
 
+// ✅ Settings: solo host
 $("chkNoRepeat").addEventListener("change", async (e) => {
     if (!roomCode) return;
+    if (!isHost) return;
     await set(roomRef("settings/noRepeat"), !!e.target.checked);
 });
 
+// ✅ Add custom action: solo host
 $("btnAddAction").addEventListener("click", async () => {
     if (!roomCode) return;
+    if (!isHost) return;
+
     const txt = $("newActionInput").value.trim();
     if (!txt) return;
 
     const snap = await get(roomRef("actions/custom"));
     const arr = (snap.val() || []).filter(Boolean);
+
     arr.push(txt);
     await set(roomRef("actions/custom"), arr);
     $("newActionInput").value = "";
 });
 
+// ✅ Start game: solo host
 $("btnStart").addEventListener("click", async () => {
     if (!roomCode) return;
+    if (!isHost) return;
+
     const snap = await get(roomRef());
-    await startGame(snap.val());
+    const data = snap.val();
+    await startGame(data);
 });
 
+// Execute checkbox (mi acción)
 $("youExecChk").addEventListener("change", async (e) => {
     if (!roomCode || !playerId) return;
+
     const snap = await get(roomRef("game/wildcardPlayerId"));
     const wildcardId = snap.val();
     if (playerId === wildcardId) return;

@@ -55,8 +55,10 @@
                 <ul id="playersList" class="list"></ul>
             </div>
 
-            <div class="card-inner">
-                <h3>Ajustes</h3>
+            <!-- SOLO HOST -->
+            <div class="card-inner hidden" id="hostControls">
+                <h3>Ajustes (solo host)</h3>
+
                 <label class="check">
                     <input type="checkbox" id="chkNoRepeat" checked />
                     Por defecto: las acciones usadas <b>NO</b> vuelven a salir (sin repetición)
@@ -66,11 +68,12 @@
                     <input id="newActionInput" placeholder="Añadir acción personalizada (opcional)" />
                     <button id="btnAddAction">Añadir</button>
                 </div>
-                <ul id="customActionsList" class="list small"></ul>
-            </div>
 
-            <div class="row">
-                <button id="btnStart" class="primary">Empezar a jugar</button>
+                <ul id="customActionsList" class="list small"></ul>
+
+                <div class="row">
+                    <button id="btnStart" class="primary">Empezar a jugar</button>
+                </div>
             </div>
 
             <p class="muted small" id="hostHint"></p>
@@ -126,7 +129,7 @@
         </footer>
     </div>
 
-    <!-- Firebase config (tu archivo con claves) -->
+    <!-- Firebase config -->
     <script src="./firebaseConfig.js"></script>
 
     <!-- App -->
