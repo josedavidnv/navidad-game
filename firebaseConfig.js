@@ -1,11 +1,10 @@
-// ⚠️ Rellena esto desde Firebase Console → Project settings → Your apps (Web)
-// Este archivo se puede publicar (no es "secreto"), pero protege tu BD con Rules.
+// firebaseConfig.js
 window.FIREBASE_CONFIG = {
-    apiKey: "TU_API_KEY",
-    authDomain: "TU_PROYECTO.firebaseapp.com",
-    databaseURL: "https://TU_PROYECTO-default-rtdb.europe-west1.firebasedatabase.app",
-    projectId: "TU_PROYECTO",
-    storageBucket: "TU_PROYECTO.appspot.com",
-    messagingSenderId: "....",
-    appId: "...."
+    apiKey: "AIzaSyDGK1M32BBs6SoHoWysd9DsaoR9t55l2Oc",
+    authDomain: "navidad-game.firebaseapp.com",
+    databaseURL: "https://navidad-game-default-rtdb.firebaseio.com",
+    projectId: "navidad-game",
+    storageBucket: "navidad-game.firebasestorage.app",
+    messagingSenderId: "1070428382882",
+    appId: "1:1070428382882:web:2241ad6670f116856759fb"
 };
