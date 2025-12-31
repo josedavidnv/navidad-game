@@ -1,0 +1,253 @@
+:root {
+    --bg: #0b1220;
+    --card: #111a2e;
+    --card2: #0f172a;
+    --text: #e8eefc;
+    --muted: #a7b2d6;
+    --accent: #7dd3fc;
+    --accent2: #34d399;
+    --danger: #fb7185;
+    --line: rgba(255, 255, 255, .10);
+}
+
+* {
+    box-sizing: border-box
+}
+
+html,
+body {
+    height: 100%
+}
+
+body {
+    margin: 0;
+    font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+    background: radial-gradient(1200px 800px at 20% 0%, rgba(125, 211, 252, .18), transparent 60%),
+        radial-gradient(1200px 800px at 80% 30%, rgba(52, 211, 153, .14), transparent 55%),
+        var(--bg);
+    color: var(--text);
+}
+
+.wrap {
+    max-width: 920px;
+    margin: 0 auto;
+    padding: 18px
+}
+
+.top {
+    margin: 10px 0 14px
+}
+
+h1 {
+    margin: 0 0 4px
+}
+
+h2 {
+    margin: 0 0 10px
+}
+
+h3 {
+    margin: 0 0 10px
+}
+
+.card {
+    background: rgba(17, 26, 46, .78);
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    padding: 14px;
+    margin: 12px 0;
+    box-shadow: 0 12px 40px rgba(0, 0, 0, .25);
+    backdrop-filter: blur(8px);
+}
+
+.card-inner {
+    margin-top: 12px;
+    background: rgba(15, 23, 42, .72);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 12px;
+}
+
+.hidden {
+    display: none !important
+}
+
+.muted {
+    color: var(--muted)
+}
+
+.small {
+    font-size: .92rem
+}
+
+.foot {
+    padding: 10px 0 20px
+}
+
+.grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+}
+
+@media (max-width:720px) {
+    .grid {
+        grid-template-columns: 1fr
+    }
+}
+
+label {
+    display: block;
+    font-size: .95rem;
+    color: var(--muted)
+}
+
+input {
+    width: 100%;
+    margin-top: 6px;
+    padding: 12px 12px;
+    border-radius: 12px;
+    border: 1px solid var(--line);
+    background: rgba(255, 255, 255, .06);
+    color: var(--text);
+    outline: none;
+}
+
+input:focus {
+    border-color: rgba(125, 211, 252, .6)
+}
+
+.row {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    margin-top: 12px
+}
+
+.space {
+    justify-content: space-between
+}
+
+button {
+    border: 1px solid var(--line);
+    background: rgba(255, 255, 255, .06);
+    color: var(--text);
+    padding: 11px 12px;
+    border-radius: 12px;
+    cursor: pointer;
+    font-weight: 650;
+}
+
+button:hover {
+    border-color: rgba(125, 211, 252, .55)
+}
+
+button.primary {
+    background: linear-gradient(90deg, rgba(125, 211, 252, .28), rgba(52, 211, 153, .22));
+    border-color: rgba(125, 211, 252, .45);
+}
+
+button.ghost {
+    background: transparent
+}
+
+.list {
+    list-style: none;
+    padding: 0;
+    margin: 8px 0 0
+}
+
+.list li {
+    padding: 10px 10px;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    margin: 8px 0;
+    background: rgba(255, 255, 255, .04);
+}
+
+.big {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-top: 12px
+}
+
+@media (max-width:720px) {
+    .big {
+        grid-template-columns: 1fr
+    }
+}
+
+.pill {
+    border: 1px solid rgba(125, 211, 252, .35);
+    background: rgba(125, 211, 252, .12);
+    border-radius: 999px;
+    padding: 10px 12px;
+    font-weight: 750;
+}
+
+.you {
+    border: 1px solid rgba(52, 211, 153, .35);
+    background: rgba(52, 211, 153, .10);
+    border-radius: 16px;
+    padding: 12px;
+}
+
+.youName {
+    font-size: 1.25rem;
+    font-weight: 850;
+    margin-top: 2px
+}
+
+.youRole {
+    font-size: 1.35rem;
+    font-weight: 900;
+    margin-top: 6px
+}
+
+.check {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: var(--text);
+    margin-top: 10px
+}
+
+.check input {
+    width: auto;
+    margin: 0
+}
+
+.table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 10px;
+    font-size: .97rem;
+}
+
+.table th,
+.table td {
+    text-align: left;
+    padding: 10px 8px;
+    border-bottom: 1px solid var(--line);
+    vertical-align: middle;
+}
+
+.badge {
+    display: inline-block;
+    padding: 5px 10px;
+    border-radius: 999px;
+    border: 1px solid var(--line);
+    background: rgba(255, 255, 255, .05);
+    font-weight: 750;
+}
+
+.badge.ok {
+    border-color: rgba(52, 211, 153, .4);
+    background: rgba(52, 211, 153, .12)
+}
+
+.badge.no {
+    border-color: rgba(251, 113, 133, .35);
+    background: rgba(251, 113, 133, .10)
+}

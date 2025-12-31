@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="es">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Juego Navideño</title>
+    <link rel="stylesheet" href="./styles.css" />
+</head>
+
+<body>
+    <div class="wrap">
+        <header class="top">
+            <h1 id="gameTitle">🎄 Juego Navideño</h1>
+            <p class="muted" id="subtitle">Entra, espera a tus amigos y empezad.</p>
+        </header>
+
+        <!-- PANTALLA: INICIO -->
+        <section class="card" id="screen-landing">
+            <h2>Entrar</h2>
+            <div class="grid">
+                <label>
+                    Tu nombre
+                    <input id="nameInput" maxlength="24" placeholder="Ej: Marta" autocomplete="nickname" />
+                </label>
+
+                <label>
+                    Código de sala
+                    <input id="roomInput" maxlength="12" placeholder="Ej: X7K9Q" />
+                </label>
+            </div>
+
+            <div class="row">
+                <button id="btnCreate">Crear sala</button>
+                <button id="btnJoin" class="primary">Unirme</button>
+            </div>
+
+            <p class="muted small">
+                Consejo: si creas sala, comparte el código por WhatsApp.
+            </p>
+        </section>
+
+        <!-- PANTALLA: LOBBY / ESPERA -->
+        <section class="card hidden" id="screen-lobby">
+            <div class="row space">
+                <div>
+                    <h2>Sala: <span id="roomCodeText"></span></h2>
+                    <p class="muted small">Comparte este código con tus amigos.</p>
+                </div>
+                <button id="btnLeaveLobby" class="ghost">Salir</button>
+            </div>
+
+            <div class="card-inner">
+                <h3>Gente en la sala</h3>
+                <ul id="playersList" class="list"></ul>
+            </div>
+
+            <div class="card-inner">
+                <h3>Ajustes</h3>
+                <label class="check">
+                    <input type="checkbox" id="chkNoRepeat" checked />
+                    Por defecto: las acciones usadas <b>NO</b> vuelven a salir (sin repetición)
+                </label>
+
+                <div class="row">
+                    <input id="newActionInput" placeholder="Añadir acción personalizada (opcional)" />
+                    <button id="btnAddAction">Añadir</button>
+                </div>
+                <ul id="customActionsList" class="list small"></ul>
+            </div>
+
+            <div class="row">
+                <button id="btnStart" class="primary">Empezar a jugar</button>
+            </div>
+
+            <p class="muted small" id="hostHint"></p>
+        </section>
+
+        <!-- PANTALLA: JUEGO -->
+        <section class="card hidden" id="screen-game">
+            <div class="row space">
+                <div>
+                    <h2>Partida</h2>
+                    <p class="muted small">Sala: <span id="roomCodeText2"></span></p>
+                </div>
+                <button id="btnLeaveGame" class="ghost">Salir</button>
+            </div>
+
+            <div class="big">
+                <div class="pill" id="wildcardPill">Comodín: —</div>
+                <div class="you">
+                    <div class="muted small">Tú eres</div>
+                    <div class="youName" id="youName">—</div>
+                    <div class="youRole" id="youRole">—</div>
+                    <label class="check" id="youExecWrap">
+                        <input type="checkbox" id="youExecChk" />
+                        He ejecutado mi acción
+                    </label>
+                    <div class="muted small" id="youExecHint"></div>
+                </div>
+            </div>
+
+            <div class="card-inner">
+                <h3>Asignaciones</h3>
+                <div class="muted small">Todos ven quién tiene qué acción.</div>
+                <table class="table" id="assignmentsTable">
+                    <thead>
+                        <tr>
+                            <th>Jugador</th>
+                            <th>Acción</th>
+                            <th>Hecha</th>
+                        </tr>
+                    </thead>
+                    <tbody id="assignmentsBody"></tbody>
+                </table>
+            </div>
+
+            <div class="card-inner">
+                <h3>Info</h3>
+                <p class="muted small" id="roundInfo">—</p>
+            </div>
+        </section>
+
+        <footer class="foot muted small">
+            Hecho por Jose David. ¡Feliz Navidad! 🎅🎁
+        </footer>
+    </div>
+
+    <!-- Firebase config (tu archivo con claves) -->
+    <script src="./firebaseConfig.js"></script>
+
+    <!-- App -->
+    <script type="module" src="./app.js"></script>
+</body>
+
+</html>
