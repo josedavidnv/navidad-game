@@ -1,88 +1,155 @@
 :root {
-    --bg: #0b1220;
-    --card: #111a2e;
-    --card2: #0f172a;
+    --bg: #07111f;
+    --bg2: #0b1830;
+    --card: rgba(17, 26, 46, .78);
+    --card2: rgba(15, 23, 42, .72);
     --text: #e8eefc;
     --muted: #a7b2d6;
     --accent: #7dd3fc;
     --accent2: #34d399;
     --danger: #fb7185;
     --line: rgba(255, 255, 255, .10);
+
+    --xmasRed: #ff4d5a;
+    --xmasGreen: #2fe39a;
+    --gold: #ffd58a;
+
+    --shadow: 0 12px 40px rgba(0, 0, 0, .25);
+}
+
+html[data-theme="light"] {
+    --bg: #f6fbff;
+    --bg2: #eaf3ff;
+    --card: rgba(255, 255, 255, .75);
+    --card2: rgba(255, 255, 255, .65);
+    --text: #0b1220;
+    --muted: rgba(11, 18, 32, .65);
+    --line: rgba(0, 0, 0, .10);
+    --shadow: 0 12px 40px rgba(0, 0, 0, .12);
 }
 
 * {
-    box-sizing: border-box
+    box-sizing: border-box;
 }
 
 html,
 body {
-    height: 100%
+    height: 100%;
 }
 
 body {
     margin: 0;
     font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+
+    /* Fondo navideño más “pro” y sin cortes visibles */
     background:
-        radial-gradient(1200px 800px at 20% 0%, rgba(125, 211, 252, .18), transparent 60%),
-        radial-gradient(1200px 800px at 80% 30%, rgba(52, 211, 153, .14), transparent 55%),
-        var(--bg);
+        radial-gradient(1200px 900px at 10% 0%, rgba(255, 77, 90, .12), transparent 60%),
+        radial-gradient(1200px 900px at 90% 25%, rgba(47, 227, 154, .10), transparent 55%),
+        radial-gradient(900px 700px at 35% 80%, rgba(125, 211, 252, .12), transparent 60%),
+        linear-gradient(180deg, var(--bg), var(--bg2));
+    background-attachment: fixed;
     color: var(--text);
+    overflow-x: hidden;
 }
 
+/* Snow canvas */
+#snowCanvas {
+    position: fixed;
+    inset: 0;
+    width: 100vw;
+    height: 100vh;
+    pointer-events: none;
+    z-index: 0;
+}
+
+/* Wrap over snow */
 .wrap {
-    max-width: 920px;
+    position: relative;
+    z-index: 1;
+    max-width: 980px;
     margin: 0 auto;
-    padding: 18px
+    padding: 18px;
 }
 
 .top {
-    margin: 10px 0 14px
+    margin: 10px 0 14px;
+    position: relative;
+}
+
+.garland {
+    height: 18px;
+    margin-bottom: 10px;
+    border-radius: 999px;
+    background:
+        repeating-linear-gradient(90deg,
+            rgba(255, 213, 138, .40) 0 10px,
+            rgba(255, 77, 90, .35) 10px 20px,
+            rgba(47, 227, 154, .32) 20px 30px,
+            rgba(125, 211, 252, .28) 30px 40px);
+    filter: blur(.2px);
+    opacity: .85;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, .12);
 }
 
 h1 {
-    margin: 0 0 4px
+    margin: 0 0 4px;
+    letter-spacing: .2px;
 }
 
 h2 {
-    margin: 0 0 10px
+    margin: 0 0 10px;
 }
 
 h3 {
-    margin: 0 0 10px
+    margin: 0 0 10px;
 }
 
 .card {
-    background: rgba(17, 26, 46, .78);
+    background: var(--card);
     border: 1px solid var(--line);
-    border-radius: 16px;
+    border-radius: 18px;
     padding: 14px;
     margin: 12px 0;
-    box-shadow: 0 12px 40px rgba(0, 0, 0, .25);
-    backdrop-filter: blur(8px);
+    box-shadow: var(--shadow);
+    backdrop-filter: blur(10px);
+    position: relative;
+}
+
+.card::before {
+    content: "";
+    position: absolute;
+    inset: -1px;
+    border-radius: 18px;
+    pointer-events: none;
+    background: linear-gradient(135deg, rgba(255, 213, 138, .18), rgba(47, 227, 154, .10), rgba(255, 77, 90, .10));
+    opacity: .35;
+    mask: linear-gradient(#000, #000) content-box, linear-gradient(#000, #000);
+    -webkit-mask: linear-gradient(#000, #000) content-box, linear-gradient(#000, #000);
+    padding: 1px;
 }
 
 .card-inner {
     margin-top: 12px;
-    background: rgba(15, 23, 42, .72);
+    background: var(--card2);
     border: 1px solid var(--line);
-    border-radius: 14px;
+    border-radius: 16px;
     padding: 12px;
 }
 
 .hidden {
-    display: none !important
+    display: none !important;
 }
 
 .muted {
-    color: var(--muted)
+    color: var(--muted);
 }
 
 .small {
-    font-size: .92rem
+    font-size: .92rem;
 }
 
 .foot {
-    padding: 10px 0 20px
+    padding: 10px 0 20px;
 }
 
 .grid {
@@ -93,7 +160,7 @@ h3 {
 
 @media (max-width:720px) {
     .grid {
-        grid-template-columns: 1fr
+        grid-template-columns: 1fr;
     }
 }
 
@@ -109,13 +176,17 @@ input {
     padding: 12px 12px;
     border-radius: 12px;
     border: 1px solid var(--line);
-    background: rgba(255, 255, 255, .06);
+    background: rgba(255, 255, 255, .08);
     color: var(--text);
     outline: none;
 }
 
+html[data-theme="light"] input {
+    background: rgba(0, 0, 0, .04);
+}
+
 input:focus {
-    border-color: rgba(125, 211, 252, .6)
+    border-color: rgba(125, 211, 252, .6);
 }
 
 .row {
@@ -126,36 +197,49 @@ input:focus {
 }
 
 .space {
-    justify-content: space-between
+    justify-content: space-between;
 }
 
 button {
     border: 1px solid var(--line);
-    background: rgba(255, 255, 255, .06);
+    background: rgba(255, 255, 255, .08);
     color: var(--text);
     padding: 11px 12px;
     border-radius: 12px;
     cursor: pointer;
-    font-weight: 650;
+    font-weight: 750;
+    transition: transform .08s ease, border-color .12s ease, background .12s ease;
 }
 
 button:hover {
-    border-color: rgba(125, 211, 252, .55)
+    border-color: rgba(125, 211, 252, .55);
+}
+
+button:active {
+    transform: translateY(1px);
 }
 
 button.primary {
-    background: linear-gradient(90deg, rgba(125, 211, 252, .28), rgba(52, 211, 153, .22));
-    border-color: rgba(125, 211, 252, .45);
+    background: linear-gradient(90deg, rgba(255, 77, 90, .22), rgba(47, 227, 154, .18), rgba(125, 211, 252, .18));
+    border-color: rgba(255, 213, 138, .35);
 }
 
 button.ghost {
-    background: transparent
+    background: transparent;
+}
+
+/* Icon small button */
+.iconBtn {
+    padding: 6px 10px;
+    border-radius: 10px;
+    font-weight: 900;
+    margin-left: 6px;
 }
 
 .list {
     list-style: none;
     padding: 0;
-    margin: 8px 0 0
+    margin: 8px 0 0;
 }
 
 .list li {
@@ -163,7 +247,7 @@ button.ghost {
     border: 1px solid var(--line);
     border-radius: 12px;
     margin: 8px 0;
-    background: rgba(255, 255, 255, .04);
+    background: rgba(255, 255, 255, .05);
 }
 
 .big {
@@ -175,35 +259,37 @@ button.ghost {
 
 @media (max-width:720px) {
     .big {
-        grid-template-columns: 1fr
+        grid-template-columns: 1fr;
     }
 }
 
 .pill {
-    border: 1px solid rgba(125, 211, 252, .35);
-    background: rgba(125, 211, 252, .12);
+    border: 1px solid rgba(255, 213, 138, .30);
+    background: rgba(255, 213, 138, .10);
     border-radius: 999px;
     padding: 10px 12px;
-    font-weight: 750;
+    font-weight: 850;
+    display: flex;
+    align-items: center;
 }
 
 .you {
-    border: 1px solid rgba(52, 211, 153, .35);
-    background: rgba(52, 211, 153, .10);
+    border: 1px solid rgba(47, 227, 154, .30);
+    background: rgba(47, 227, 154, .10);
     border-radius: 16px;
     padding: 12px;
 }
 
 .youName {
     font-size: 1.25rem;
-    font-weight: 850;
-    margin-top: 2px
+    font-weight: 900;
+    margin-top: 2px;
 }
 
 .youRole {
     font-size: 1.35rem;
-    font-weight: 900;
-    margin-top: 6px
+    font-weight: 950;
+    margin-top: 6px;
 }
 
 .check {
@@ -216,7 +302,7 @@ button.ghost {
 
 .check input {
     width: auto;
-    margin: 0
+    margin: 0;
 }
 
 .table {
@@ -239,16 +325,170 @@ button.ghost {
     padding: 5px 10px;
     border-radius: 999px;
     border: 1px solid var(--line);
-    background: rgba(255, 255, 255, .05);
-    font-weight: 750;
+    background: rgba(255, 255, 255, .06);
+    font-weight: 850;
 }
 
 .badge.ok {
-    border-color: rgba(52, 211, 153, .4);
-    background: rgba(52, 211, 153, .12);
+    border-color: rgba(47, 227, 154, .45);
+    background: rgba(47, 227, 154, .12);
 }
 
 .badge.no {
-    border-color: rgba(251, 113, 133, .35);
-    background: rgba(251, 113, 133, .10);
+    border-color: rgba(255, 77, 90, .35);
+    background: rgba(255, 77, 90, .10);
+}
+
+/* Actions manager improved */
+.actionsBox {
+    margin-top: 10px;
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 10px;
+    max-height: 300px;
+    overflow: auto;
+    background: rgba(255, 255, 255, .04);
+}
+
+.actionItem {
+    display: grid;
+    grid-template-columns: 24px 1fr auto;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 8px;
+    border-bottom: 1px solid rgba(255, 255, 255, .06);
+    border-radius: 12px;
+}
+
+.actionItem:hover {
+    background: rgba(255, 255, 255, .04);
+}
+
+.actionItem:last-child {
+    border-bottom: none;
+}
+
+.actionItem .mutedTag {
+    font-size: .85rem;
+    color: var(--muted);
+}
+
+.summaryRow {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+}
+
+.countsPill {
+    border: 1px solid var(--line);
+    background: rgba(255, 255, 255, .06);
+    border-radius: 999px;
+    padding: 6px 10px;
+    font-weight: 850;
+    font-size: .92rem;
+}
+
+/* Overlay */
+.overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, .55);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 18px;
+    z-index: 9999;
+}
+
+.overlayCard {
+    width: min(680px, 100%);
+    background: rgba(17, 26, 46, .92);
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    padding: 16px;
+    box-shadow: 0 16px 60px rgba(0, 0, 0, .35);
+    backdrop-filter: blur(8px);
+}
+
+html[data-theme="light"] .overlayCard {
+    background: rgba(255, 255, 255, .92);
+}
+
+/* Big execute button */
+.execBtn {
+    width: 100%;
+    margin-top: 12px;
+    padding: 14px 14px;
+    border-radius: 14px;
+    font-weight: 950;
+    font-size: 1.05rem;
+    border: 1px solid rgba(47, 227, 154, .40);
+    background: linear-gradient(90deg, rgba(47, 227, 154, .18), rgba(125, 211, 252, .14));
+}
+
+.execBtn.done {
+    border-color: rgba(255, 213, 138, .45);
+    background: linear-gradient(90deg, rgba(255, 213, 138, .18), rgba(255, 77, 90, .12));
+}
+
+/* Center you card when no wildcard */
+.big.centerYou {
+    grid-template-columns: 1fr;
+}
+
+.big.centerYou .you {
+    max-width: 520px;
+    margin: 0 auto;
+}
+
+/* Corner controls */
+.cornerToggle {
+    position: fixed;
+    right: 10px;
+    bottom: 10px;
+    z-index: 10000;
+    width: 42px;
+    height: 42px;
+    border-radius: 999px;
+    border: 1px solid var(--line);
+    background: rgba(255, 255, 255, .10);
+    font-weight: 900;
+    opacity: .35;
+}
+
+.cornerToggle:hover {
+    opacity: .95;
+}
+
+.cornerPanel {
+    position: fixed;
+    right: 10px;
+    bottom: 58px;
+    z-index: 10000;
+    width: 190px;
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 10px;
+    background: rgba(17, 26, 46, .86);
+    backdrop-filter: blur(10px);
+    box-shadow: var(--shadow);
+}
+
+html[data-theme="light"] .cornerPanel {
+    background: rgba(255, 255, 255, .86);
+}
+
+.cornerRow {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 6px 2px;
+}
+
+.miniBtn {
+    padding: 6px 10px;
+    border-radius: 10px;
+    font-weight: 900;
 }

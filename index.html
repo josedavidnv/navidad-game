@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="es">
+<html lang="es" data-theme="dark">
 
 <head>
     <meta charset="utf-8" />
@@ -9,8 +9,29 @@
 </head>
 
 <body>
+    <!-- Snow canvas (full screen) -->
+    <canvas id="snowCanvas" aria-hidden="true"></canvas>
+
+    <!-- Corner toggles (solo local) -->
+    <button id="cornerToggleBtn" class="cornerToggle" title="Ajustes visuales">⚙️</button>
+    <div id="cornerPanel" class="cornerPanel hidden">
+        <div class="cornerRow">
+            <span>❄️ Nieve</span>
+            <button id="toggleSnow" class="miniBtn">ON</button>
+        </div>
+        <div class="cornerRow">
+            <span>🔊 Sonidos</span>
+            <button id="toggleSound" class="miniBtn">ON</button>
+        </div>
+        <div class="cornerRow">
+            <span>🌗 Tema</span>
+            <button id="toggleTheme" class="miniBtn">Oscuro</button>
+        </div>
+    </div>
+
     <div class="wrap">
         <header class="top">
+            <div class="garland" aria-hidden="true"></div>
             <h1 id="gameTitle">🎄 Juego Navideño</h1>
             <p class="muted" id="subtitle">Entra, espera a tus amigos y empezad.</p>
         </header>
@@ -44,7 +65,11 @@
         <section class="card hidden" id="screen-lobby">
             <div class="row space">
                 <div>
-                    <h2>Sala: <span id="roomCodeText"></span></h2>
+                    <h2>
+                        Sala:
+                        <span id="roomCodeText"></span>
+                        <button id="btnCopyRoom" class="iconBtn" title="Copiar código">📋</button>
+                    </h2>
                     <p class="muted small">Comparte este código con tus amigos.</p>
                 </div>
                 <button id="btnLeaveLobby" class="ghost">Salir</button>
@@ -56,24 +81,64 @@
             </div>
 
             <!-- SOLO HOST -->
-            <div class="card-inner hidden" id="hostControls">
-                <h3>Ajustes (solo host)</h3>
+            <div class="card-inner" id="hostLobbyControls" style="display:none">
+                <div class="row space" style="margin-top:0">
+                    <h3 style="margin:0">
+                        Ajustes (solo host)
+                    </h3>
+                    <div class="countsPill" id="actionsCountsLobby">—</div>
+                </div>
 
                 <label class="check">
                     <input type="checkbox" id="chkNoRepeat" checked />
-                    Por defecto: las acciones usadas <b>NO</b> vuelven a salir (sin repetición)
+                    Sin repetición (las acciones usadas no vuelven a salir)
                 </label>
 
-                <div class="row">
-                    <input id="newActionInput" placeholder="Añadir acción personalizada (opcional)" />
+                <label class="check">
+                    <input type="checkbox" id="chkUseWildcard" />
+                    Jugar con comodín
+                </label>
+
+                <label class="check">
+                    <input type="checkbox" id="chkLockJoin" checked />
+                    Cerrar sala al empezar (solo pueden re-entrar los que ya estaban)
+                </label>
+
+                <label style="margin-top:10px; display:block;">
+                    Castigo si alguien no hace su acción
+                    <input id="punishmentInput" placeholder="Ej: 1 chupito / 20 sentadillas" />
+                </label>
+
+                <div class="row" style="margin-top:10px;">
+                    <input id="newActionInput" placeholder="Añadir acción personalizada" />
                     <button id="btnAddAction">Añadir</button>
                 </div>
 
-                <ul id="customActionsList" class="list small"></ul>
+                <details class="card-inner" style="margin-top:12px;">
+                    <summary class="summaryRow">
+                        <b>Gestionar acciones</b>
+                        <span class="muted small" id="actionsCountsLobby2">—</span>
+                    </summary>
 
-                <div class="row">
-                    <button id="btnStart" class="primary">Empezar a jugar</button>
-                </div>
+                    <div class="row" style="margin-top:10px; flex-wrap:wrap;">
+                        <button id="btnEnableAll" class="ghost">Marcar todas</button>
+                        <button id="btnDisableAll" class="ghost">Desmarcar todas</button>
+                    </div>
+
+                    <div class="actionsBox" id="actionsBox"></div>
+
+                    <p class="muted small" style="margin-top:10px;">
+                        Nota: En “sin repetición”, cuando una acción salga, se desmarcará automáticamente (pero puedes
+                        reactivarla).
+                    </p>
+                </details>
+
+                <ul id="customActionsList" class="list small"></ul>
+            </div>
+
+            <!-- SOLO HOST -->
+            <div class="row" id="hostLobbyStartRow" style="display:none">
+                <button id="btnStart" class="primary">Empezar a jugar</button>
             </div>
 
             <p class="muted small" id="hostHint"></p>
@@ -84,21 +149,27 @@
             <div class="row space">
                 <div>
                     <h2>Partida</h2>
-                    <p class="muted small">Sala: <span id="roomCodeText2"></span></p>
+                    <p class="muted small">
+                        Sala:
+                        <span id="roomCodeText2"></span>
+                        <button id="btnCopyRoom2" class="iconBtn" title="Copiar código">📋</button>
+                    </p>
                 </div>
                 <button id="btnLeaveGame" class="ghost">Salir</button>
             </div>
 
-            <div class="big">
-                <div class="pill" id="wildcardPill">Comodín: —</div>
-                <div class="you">
+            <div class="big" id="gameTopGrid">
+                <div class="pill" id="wildcardPill">🎁 Comodín: —</div>
+
+                <div class="you" id="youCard">
                     <div class="muted small">Tú eres</div>
                     <div class="youName" id="youName">—</div>
                     <div class="youRole" id="youRole">—</div>
-                    <label class="check" id="youExecWrap">
-                        <input type="checkbox" id="youExecChk" />
-                        He ejecutado mi acción
-                    </label>
+
+                    <!-- NUEVO BOTÓN GRANDE -->
+                    <button id="youExecBtn" class="execBtn" type="button">
+                        ✅ Marcar como hecha
+                    </button>
                     <div class="muted small" id="youExecHint"></div>
                 </div>
             </div>
@@ -121,8 +192,76 @@
             <div class="card-inner">
                 <h3>Info</h3>
                 <p class="muted small" id="roundInfo">—</p>
+                <p class="muted small" id="punishmentInfo"></p>
+            </div>
+
+            <!-- SOLO HOST (en partida) -->
+            <div class="card-inner" id="hostGameControls" style="display:none">
+                <div class="row space" style="margin-top:0">
+                    <h3 style="margin:0">Ajustes en partida (solo host)</h3>
+                    <div class="countsPill" id="actionsCountsGame">—</div>
+                </div>
+
+                <label class="check">
+                    <input type="checkbox" id="g_chkNoRepeat" />
+                    Sin repetición
+                </label>
+
+                <label class="check">
+                    <input type="checkbox" id="g_chkUseWildcard" />
+                    Jugar con comodín
+                </label>
+
+                <label class="check">
+                    <input type="checkbox" id="g_chkLockJoin" />
+                    Cerrar sala
+                </label>
+
+                <label style="margin-top:10px; display:block;">
+                    Castigo
+                    <input id="g_punishmentInput" />
+                </label>
+
+                <div class="row" style="margin-top:10px;">
+                    <input id="g_newActionInput" placeholder="Añadir acción personalizada" />
+                    <button id="g_btnAddAction">Añadir</button>
+                </div>
+
+                <details class="card-inner" style="margin-top:12px;">
+                    <summary class="summaryRow">
+                        <b>Gestionar acciones</b>
+                        <span class="muted small" id="actionsCountsGame2">—</span>
+                    </summary>
+
+                    <div class="row" style="margin-top:10px; flex-wrap:wrap;">
+                        <button id="g_btnEnableAll" class="ghost">Marcar todas</button>
+                        <button id="g_btnDisableAll" class="ghost">Desmarcar todas</button>
+                    </div>
+
+                    <div class="actionsBox" id="g_actionsBox"></div>
+                </details>
             </div>
         </section>
+
+        <!-- OVERLAY: SIN ACCIONES -->
+        <div class="overlay hidden" id="overlayNoActions">
+            <div class="overlayCard">
+                <h2>🎅 No quedan más acciones</h2>
+                <p class="muted">
+                    Ya no hay acciones disponibles con los filtros actuales.
+                </p>
+
+                <!-- SOLO: Host -> Marcar todas + Salir. No host -> Solo salir -->
+                <div class="row" style="justify-content:center; flex-wrap:wrap;" id="overlayBtnsHost">
+                    <button id="btnOverlayEnableAll" class="primary">Marcar todas</button>
+                    <button id="btnExitNoActions" class="ghost">Salir</button>
+                </div>
+
+                <div class="row" style="justify-content:center; flex-wrap:wrap;" id="overlayBtnsUser">
+                    <button id="btnExitNoActions2" class="ghost">Salir</button>
+                </div>
+            </div>
+        </div>
 
         <footer class="foot muted small">
             Hecho por Jose David. ¡Feliz Navidad! 🎅🎁
